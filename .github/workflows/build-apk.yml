@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,3 +37,16 @@ jobs:
           name: TesseriniTauri-apk
           path: TesseriniTauri.apk
           retention-days: 30
+
+      - name: Pubblica APK nel ramo apk
+        run: |
+          cp TesseriniTauri.apk /tmp/TesseriniTauri.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan apk
+          git rm -rf -q .
+          git clean -fdxq
+          cp /tmp/TesseriniTauri.apk .
+          git add TesseriniTauri.apk
+          git commit -q -m "APK build ${{ github.run_number }}"
+          git push -f origin apk
