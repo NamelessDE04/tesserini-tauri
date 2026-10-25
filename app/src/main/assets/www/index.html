@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171915">
+<title>Tesserini Tauri</title>
+<link rel="icon" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <span class="top-logo" aria-hidden="true"></span>
+  <div>
+    <h1>Tesserini Tauri</h1>
+    <p>Generatore tessere di riconoscimento</p>
+  </div>
+  <button type="button" class="icon-btn" id="btnArchivio" aria-label="Archivio tesserini">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 7h18M5 7v12h14V7M9 11h6M4 3h16v4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+  </button>
+</header>
+
+<main>
+  <section class="preview-wrap">
+    <canvas id="preview" aria-label="Anteprima tesserino"></canvas>
+    <p class="hint" id="qrInfo"></p>
+  </section>
+
+  <section class="card">
+    <h2>Foto</h2>
+    <div class="row2">
+      <label class="btn btn-ghost file-btn">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        Fotocamera
+        <input type="file" accept="image/*" capture="environment" id="fotoCamera">
+      </label>
+      <label class="btn btn-ghost file-btn">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 16l5-5 4 4 3-3 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        Galleria
+        <input type="file" accept="image/*" id="fotoGalleria">
+      </label>
+    </div>
+    <div id="fotoControls" class="sliders" hidden>
+      <label>Zoom <input type="range" id="photoZoom" min="1" max="3" step="0.01" value="1"></label>
+      <label>Sposta orizz. <input type="range" id="photoX" min="-1" max="1" step="0.01" value="0"></label>
+      <label>Sposta vert. <input type="range" id="photoY" min="-1" max="1" step="0.01" value="0"></label>
+      <button type="button" class="link-btn" id="fotoRimuovi">Rimuovi foto</button>
+    </div>
+    <p class="hint">Puoi anche trascinare la foto direttamente sull'anteprima.</p>
+  </section>
+
+  <section class="card">
+    <h2>Dati operatore</h2>
+    <div class="grid">
+      <label>Cognome <input type="text" id="cognome" autocomplete="off" autocapitalize="characters"></label>
+      <label>Nome <input type="text" id="nome" autocomplete="off" autocapitalize="characters"></label>
+      <label>Callsign <input type="text" id="callsign" autocomplete="off" autocapitalize="characters"></label>
+      <label>N° tessera <input type="text" id="numero" autocomplete="off" autocapitalize="characters" placeholder="TS-0001"></label>
+      <label>Gruppo sanguigno
+        <select id="sangue">
+          <option value="">—</option>
+          <option>0 Rh+</option><option>0 Rh−</option>
+          <option>A Rh+</option><option>A Rh−</option>
+          <option>B Rh+</option><option>B Rh−</option>
+          <option>AB Rh+</option><option>AB Rh−</option>
+        </select>
+      </label>
+      <label>Grado <select id="grado"></select></label>
+      <label>Livello Tier
+        <select id="tier"><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option><option value="">Nessuno</option></select>
+      </label>
+      <label>Tema
+        <select id="tema"><option value="notte">Notte</option><option value="oliva">Verde oliva</option><option value="deserto">Deserto</option></select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Contenuto del QR</h2>
+    <label class="check"><input type="checkbox" id="qrDati" checked> Includi nome, callsign e gruppo sanguigno</label>
+    <h3>Referenti / contatti</h3>
+    <div id="referenti"></div>
+    <button type="button" class="btn btn-ghost" id="addReferente">+ Aggiungi referente</button>
+    <label class="full">Note (facoltative)
+      <textarea id="note" rows="2" placeholder="Es. allergie, indicazioni per i soccorsi"></textarea>
+    </label>
+    <details>
+      <summary>Testo che verrà messo nel QR</summary>
+      <pre id="qrPreview"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Archivio</h2>
+    <div class="row2">
+      <button type="button" class="btn btn-ghost" id="btnSalva">Salva in archivio</button>
+      <button type="button" class="btn btn-ghost" id="btnNuovo">Nuovo tesserino</button>
+    </div>
+  </section>
+</main>
+
+<nav class="actions" aria-label="Esporta">
+  <button type="button" class="btn" id="expPng">Immagine</button>
+  <button type="button" class="btn" id="expPdf">PDF</button>
+  <button type="button" class="btn" id="expA4">PDF A4 stampa</button>
+  <button type="button" class="btn btn-accent" id="expShare">Condividi</button>
+</nav>
+
+<dialog id="dlgArchivio">
+  <div class="dlg-head">
+    <h2>Archivio tesserini</h2>
+    <button type="button" class="icon-btn" id="dlgChiudi" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+  </div>
+  <ul id="listaArchivio"></ul>
+  <p class="hint" id="archivioVuoto">Nessun tesserino salvato.</p>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<template id="tplReferente">
+  <div class="ref">
+    <input type="text" class="r-nome" placeholder="Nome referente" autocomplete="off">
+    <input type="text" class="r-ruolo" placeholder="Ruolo (es. moglie, capo squadra)" autocomplete="off">
+    <input type="tel" class="r-tel" placeholder="Telefono" autocomplete="off">
+    <button type="button" class="icon-btn r-del" aria-label="Rimuovi referente">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</template>
+
+<script src="qr.js"></script>
+<script src="card.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

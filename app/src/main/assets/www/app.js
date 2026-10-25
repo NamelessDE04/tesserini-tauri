@@ -1,0 +1,408 @@
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY_DRAFT = 'tauri.bozza.v1';
+  var KEY_ARCH = 'tauri.archivio.v1';
+  var EXPORT_SCALE = 1240 / TauriCard.W; // 105 mm a 300 dpi
+
+  var FIELDS = ['cognome', 'nome', 'callsign', 'numero', 'sangue', 'grado', 'tier', 'tema', 'note'];
+  var state = defaults();
+  var photoImg = null;
+  var logo = new Image();
+  logo.src = 'img/logo.png';
+  logo.onload = render;
+
+  function defaults() {
+    return {
+      id: null, cognome: '', nome: '', callsign: '', numero: '', sangue: '', grado: 'Soldato semplice', tier: '4', tema: 'notte',
+      note: '', qrDati: true, referenti: [{ nome: '', ruolo: '', tel: '' }],
+      photoData: null, photoZoom: 1, photoX: 0, photoY: 0
+    };
+  }
+
+  // ---------- storage
+  function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  var saveTimer = null;
+  function saveDraft() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () { lsSet(KEY_DRAFT, state); }, 300);
+  }
+
+  // ---------- toast
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2400);
+  }
+
+  // ---------- QR text
+  function qrText() {
+    var L = ['ASD TAURI SOFTAIR'];
+    if (state.numero.trim()) L.push('Tessera ' + state.numero.trim().toUpperCase());
+    if (state.qrDati) {
+      var nome = (state.nome + ' ' + state.cognome).trim().toUpperCase();
+      if (nome || state.callsign.trim()) {
+        L.push('Operatore: ' + nome + (state.callsign.trim() ? ' "' + state.callsign.trim().toUpperCase() + '"' : ''));
+      }
+      if (state.sangue) L.push('Gruppo sanguigno: ' + state.sangue);
+    }
+    var refs = state.referenti.filter(function (r) { return r.nome.trim() || r.tel.trim(); });
+    if (refs.length) {
+      L.push('CONTATTI DI EMERGENZA');
+      refs.forEach(function (r, i) {
+        var who = r.nome.trim() + (r.ruolo.trim() ? ' (' + r.ruolo.trim() + ')' : '');
+        L.push((i + 1) + ') ' + who + (r.tel.trim() ? ': ' + r.tel.trim() : ''));
+      });
+    }
+    if (state.note.trim()) L.push('Note: ' + state.note.trim());
+    return L.length > 1 ? L.join('\n') : '';
+  }
+
+  // ---------- render
+  function render() {
+    var cv = $('preview');
+    var w = cv.clientWidth || 360;
+    var scale = Math.min(4, Math.max(1, (w * (window.devicePixelRatio || 1)) / TauriCard.W));
+    var txt = qrText();
+    var info = TauriCard.draw(cv, cardData(txt), { logo: logo }, scale);
+    $('qrPreview').textContent = txt || '(vuoto: aggiungi almeno un referente o i dati operatore)';
+    var qi = $('qrInfo');
+    if (!txt) { qi.textContent = 'QR vuoto: compila i referenti per generarlo.'; qi.className = 'hint'; }
+    else if (!info.qrVersion) { qi.textContent = 'Testo troppo lungo per il QR: accorcia le note.'; qi.className = 'hint warn'; }
+    else if (info.qrVersion > 10) { qi.textContent = 'QR molto fitto: potrebbe leggersi male una volta stampato. Accorcia note o contatti.'; qi.className = 'hint warn'; }
+    else { qi.textContent = 'QR pronto (' + new TextEncoder().encode(txt).length + ' caratteri).'; qi.className = 'hint'; }
+  }
+  function cardData(txt) {
+    return {
+      cognome: state.cognome, nome: state.nome, callsign: state.callsign, numero: state.numero,
+      sangue: state.sangue, grado: state.grado, tier: state.tier, tema: state.tema,
+      photo: photoImg, photoZoom: state.photoZoom, photoX: state.photoX, photoY: state.photoY,
+      qrText: txt === undefined ? qrText() : txt
+    };
+  }
+  var raf = null;
+  function update() { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { raf = null; render(); }); saveDraft(); }
+
+  // ---------- form binding
+  var gradoSel = $('grado');
+  var groups = {};
+  TauriCard.GRADI.forEach(function (g) {
+    if (!groups[g.cat]) {
+      groups[g.cat] = document.createElement('optgroup');
+      groups[g.cat].label = g.cat + (g.tier ? ' · Tier ' + g.tier : '');
+      gradoSel.appendChild(groups[g.cat]);
+    }
+    var o = document.createElement('option'); o.value = g.nome; o.textContent = g.nome; groups[g.cat].appendChild(o);
+  });
+  // cambiando grado si imposta il tier della sua categoria (poi resta modificabile)
+  gradoSel.addEventListener('change', function () {
+    var g = TauriCard.GRADI.find(function (x) { return x.nome === gradoSel.value; });
+    if (g) { state.tier = g.tier; $('tier').value = g.tier; update(); }
+  });
+
+  FIELDS.forEach(function (f) {
+    $(f).addEventListener('input', function (e) { state[f] = e.target.value; update(); });
+  });
+  $('qrDati').addEventListener('change', function (e) { state.qrDati = e.target.checked; update(); });
+  ['photoZoom', 'photoX', 'photoY'].forEach(function (f) {
+    $(f).addEventListener('input', function (e) { state[f] = parseFloat(e.target.value); update(); });
+  });
+
+  function fillForm() {
+    FIELDS.forEach(function (f) { $(f).value = state[f] || ''; });
+    if (state.grado === 'Soldato') state.grado = 'Soldato semplice';
+    if (!TauriCard.GRADI.some(function (g) { return g.nome === state.grado; })) state.grado = 'Soldato semplice';
+    $('grado').value = state.grado;
+    $('tier').value = state.tier || '';
+    $('qrDati').checked = !!state.qrDati;
+    $('photoZoom').value = state.photoZoom; $('photoX').value = state.photoX; $('photoY').value = state.photoY;
+    renderReferenti();
+    loadPhoto(state.photoData);
+  }
+
+  // ---------- referenti
+  function renderReferenti() {
+    var box = $('referenti'); box.innerHTML = '';
+    var tpl = $('tplReferente');
+    state.referenti.forEach(function (r, i) {
+      var n = tpl.content.firstElementChild.cloneNode(true);
+      var a = n.querySelector('.r-nome'), b = n.querySelector('.r-ruolo'), c = n.querySelector('.r-tel');
+      a.value = r.nome; b.value = r.ruolo; c.value = r.tel;
+      a.setAttribute('aria-label', 'Nome referente ' + (i + 1));
+      b.setAttribute('aria-label', 'Ruolo referente ' + (i + 1));
+      c.setAttribute('aria-label', 'Telefono referente ' + (i + 1));
+      a.oninput = function () { r.nome = a.value; update(); };
+      b.oninput = function () { r.ruolo = b.value; update(); };
+      c.oninput = function () { r.tel = c.value; update(); };
+      n.querySelector('.r-del').onclick = function () {
+        state.referenti.splice(i, 1);
+        if (!state.referenti.length) state.referenti.push({ nome: '', ruolo: '', tel: '' });
+        renderReferenti(); update();
+      };
+      box.appendChild(n);
+    });
+  }
+  $('addReferente').onclick = function () {
+    if (state.referenti.length >= 6) { toast('Massimo 6 referenti'); return; }
+    state.referenti.push({ nome: '', ruolo: '', tel: '' });
+    renderReferenti();
+    var rows = $('referenti').querySelectorAll('.r-nome'); rows[rows.length - 1].focus();
+    update();
+  };
+
+  // ---------- foto
+  function loadPhoto(dataUrl) {
+    $('fotoControls').hidden = !dataUrl;
+    if (!dataUrl) { photoImg = null; render(); return; }
+    var img = new Image();
+    img.onload = function () { photoImg = img; render(); };
+    img.src = dataUrl;
+  }
+  function onFile(e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      // ridimensiona (max 1000 px sul lato lungo) e salva come JPEG
+      var max = 1000, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      state.photoData = c.toDataURL('image/jpeg', 0.9);
+      state.photoZoom = 1; state.photoX = 0; state.photoY = 0;
+      $('photoZoom').value = 1; $('photoX').value = 0; $('photoY').value = 0;
+      loadPhoto(state.photoData);
+      saveDraft();
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast('Impossibile aprire questa immagine'); };
+    img.src = url;
+  }
+  $('fotoCamera').addEventListener('change', onFile);
+  $('fotoGalleria').addEventListener('change', onFile);
+  $('fotoRimuovi').onclick = function () { state.photoData = null; loadPhoto(null); saveDraft(); };
+
+  // trascinamento foto sull'anteprima
+  (function () {
+    var cv = $('preview'), drag = null;
+    function toCard(ev) {
+      var r = cv.getBoundingClientRect();
+      return { x: (ev.clientX - r.left) / r.width * TauriCard.W, y: (ev.clientY - r.top) / r.height * TauriCard.H };
+    }
+    cv.addEventListener('pointerdown', function (ev) {
+      if (!photoImg) return;
+      var p = toCard(ev);
+      if (p.x < 12 || p.x > 124 || p.y < 66 || p.y > 216) return;
+      drag = { x: p.x, y: p.y, sx: state.photoX, sy: state.photoY };
+      cv.setPointerCapture(ev.pointerId);
+    });
+    cv.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var p = toCard(ev);
+      var iw = photoImg.naturalWidth, ih = photoImg.naturalHeight;
+      var z = Math.max(112 / iw, 150 / ih) * state.photoZoom;
+      var ox = (iw * z - 112) / 2, oy = (ih * z - 150) / 2;
+      var clamp = function (v) { return Math.max(-1, Math.min(1, v)); };
+      if (ox > 0.5) state.photoX = clamp(drag.sx + (p.x - drag.x) / ox);
+      if (oy > 0.5) state.photoY = clamp(drag.sy + (p.y - drag.y) / oy);
+      $('photoX').value = state.photoX; $('photoY').value = state.photoY;
+      update();
+    });
+    function end() { drag = null; }
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+  })();
+
+  // ---------- export
+  function fileBase() {
+    var n = [state.cognome, state.nome].join('_').trim().replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '');
+    return 'tesserino_' + (n || 'tauri');
+  }
+  function hiRes() {
+    var c = document.createElement('canvas');
+    TauriCard.draw(c, cardData(), { logo: logo }, EXPORT_SCALE);
+    return c;
+  }
+  var ANDROID = window.TauriAndroid || null;
+  function blobB64(blob) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(String(r.result).split(',')[1]); };
+      r.onerror = rej; r.readAsDataURL(blob);
+    });
+  }
+  function download(blob, name) {
+    if (ANDROID) {
+      return blobB64(blob).then(function (b64) {
+        var r = ANDROID.saveFile(b64, name, blob.type || 'application/octet-stream');
+        if (r !== 'ok') throw new Error(r);
+      });
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  function pngBlob() {
+    return new Promise(function (res) { hiRes().toBlob(res, 'image/png'); });
+  }
+
+  function b64ToBytes(b64) {
+    var bin = atob(b64), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  // PDF minimale con una pagina e un'immagine JPEG
+  function makePdf(jpeg, imgW, imgH, pageW, pageH, place, extra) {
+    var parts = [], len = 0, offsets = [];
+    function add(x) { var b = typeof x === 'string' ? latin1(x) : x; parts.push(b); len += b.length; }
+    function latin1(s) { var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
+    function obj(n, body) { offsets[n] = len; add(n + ' 0 obj\n' + body + '\nendobj\n'); }
+    var f = function (v) { return (Math.round(v * 100) / 100).toString(); };
+    var content = 'q ' + f(place.w) + ' 0 0 ' + f(place.h) + ' ' + f(place.x) + ' ' + f(place.y) + ' cm /Im0 Do Q\n' + (extra || '');
+
+    add('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+    obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + f(pageW) + ' ' + f(pageH) + '] /Resources << /XObject << /Im0 5 0 R >> /Font << /F1 6 0 R >> >> /Contents 4 0 R >>');
+    obj(4, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+    offsets[5] = len;
+    add('5 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + imgW + ' /Height ' + imgH + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n');
+    add(jpeg);
+    add('\nendstream\nendobj\n');
+    obj(6, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    var xref = len;
+    var x = 'xref\n0 7\n0000000000 65535 f \n';
+    for (var i = 1; i <= 6; i++) x += ('0000000000' + offsets[i]).slice(-10) + ' 00000 n \n';
+    add(x + 'trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+    var out = new Uint8Array(len), p = 0;
+    parts.forEach(function (b) { out.set(b, p); p += b.length; });
+    return new Blob([out], { type: 'application/pdf' });
+  }
+  var MM = 72 / 25.4, CW = 105 * MM, CH = 85 * MM;
+  function pdfCard() {
+    var c = hiRes();
+    var jpeg = b64ToBytes(c.toDataURL('image/jpeg', 0.95).split(',')[1]);
+    return makePdf(jpeg, c.width, c.height, CW, CH, { x: 0, y: 0, w: CW, h: CH });
+  }
+  function pdfA4() {
+    var c = hiRes();
+    var jpeg = b64ToBytes(c.toDataURL('image/jpeg', 0.95).split(',')[1]);
+    var PW = 210 * MM, PH = 297 * MM;
+    var x = (PW - CW) / 2, y = PH - 25 * MM - CH;
+    var g = 3 * MM, l = 8 * MM, ops = '0 G 0.5 w\n';
+    function ln(x1, y1, x2, y2) { ops += x1.toFixed(2) + ' ' + y1.toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + ' l S\n'; }
+    [[x, y], [x + CW, y], [x, y + CH], [x + CW, y + CH]].forEach(function (pt, i) {
+      var sx = (i % 2 === 0) ? -1 : 1, sy = (i < 2) ? -1 : 1;
+      ln(pt[0] + sx * g, pt[1], pt[0] + sx * (g + l), pt[1]);
+      ln(pt[0], pt[1] + sy * g, pt[0], pt[1] + sy * (g + l));
+    });
+    ops += 'BT /F1 9 Tf 0 g ' + x.toFixed(2) + ' ' + (y - 14 * MM).toFixed(2) + ' Td (Tesserino 105 x 85 mm - stampare al 100% (dimensione reale) e ritagliare sui segni) Tj ET\n';
+    return makePdf(jpeg, c.width, c.height, PW, PH, { x: x, y: y, w: CW, h: CH }, ops);
+  }
+
+  function busy(btn, fn) {
+    return function () {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      Promise.resolve().then(fn).catch(function (e) { console.error(e); toast('Errore: ' + (e && e.message || e)); })
+        .then(function () { btn.disabled = false; });
+    };
+  }
+  function ensureFonts() { return document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve(); }
+
+  $('expPng').onclick = busy($('expPng'), function () {
+    return ensureFonts().then(pngBlob).then(function (b) { return download(b, fileBase() + '.png'); }).then(function () { toast(ANDROID ? 'Immagine salvata in Download' : 'Immagine salvata'); });
+  });
+  $('expPdf').onclick = busy($('expPdf'), function () {
+    return ensureFonts().then(function () { return download(pdfCard(), fileBase() + '.pdf'); }).then(function () { toast(ANDROID ? 'PDF salvato in Download' : 'PDF salvato'); });
+  });
+  $('expA4').onclick = busy($('expA4'), function () {
+    return ensureFonts().then(function () { return download(pdfA4(), fileBase() + '_A4.pdf'); }).then(function () { toast(ANDROID ? 'PDF A4 salvato in Download' : 'PDF A4 salvato'); });
+  });
+  $('expShare').onclick = busy($('expShare'), function () {
+    return ensureFonts().then(pngBlob).then(function (b) {
+      if (ANDROID) return blobB64(b).then(function (b64) { ANDROID.shareFile(b64, fileBase() + '.png', 'image/png'); });
+      var file = new File([b], fileBase() + '.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: 'Tesserino Tauri' }).catch(function (e) {
+          if (e && e.name === 'AbortError') return;
+          throw e;
+        });
+      }
+      return Promise.resolve(download(b, file.name)).then(function () { toast('Condivisione non disponibile: immagine salvata'); });
+    });
+  });
+
+  // ---------- archivio
+  function thumb() {
+    var c = document.createElement('canvas');
+    TauriCard.draw(c, cardData(), { logo: logo }, 0.4);
+    return c.toDataURL('image/jpeg', 0.7);
+  }
+  $('btnSalva').onclick = function () {
+    var arch = lsGet(KEY_ARCH, []);
+    if (!state.id) state.id = 't' + Date.now().toString(36);
+    var rec = JSON.parse(JSON.stringify(state));
+    rec.thumb = thumb(); rec.savedAt = Date.now();
+    var i = arch.findIndex(function (a) { return a.id === rec.id; });
+    if (i >= 0) arch[i] = rec; else arch.unshift(rec);
+    if (lsSet(KEY_ARCH, arch)) { saveDraft(); toast('Tesserino salvato in archivio'); }
+    else toast('Memoria piena: elimina qualche tesserino dall\'archivio');
+  };
+  $('btnNuovo').onclick = function () {
+    state = defaults(); photoImg = null; fillForm(); update(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('Nuovo tesserino');
+  };
+  function openArchivio() {
+    var arch = lsGet(KEY_ARCH, []), ul = $('listaArchivio');
+    ul.innerHTML = '';
+    $('archivioVuoto').hidden = arch.length > 0;
+    arch.forEach(function (rec) {
+      var li = document.createElement('li');
+      var img = document.createElement('img'); img.src = rec.thumb || ''; img.alt = '';
+      var who = document.createElement('div'); who.className = 'who';
+      var b = document.createElement('b'); b.textContent = ((rec.cognome || '') + ' ' + (rec.nome || '')).trim().toUpperCase() || 'Senza nome';
+      var s = document.createElement('span'); s.textContent = (rec.callsign ? '"' + rec.callsign.toUpperCase() + '" · ' : '') + (rec.numero || '');
+      who.appendChild(b); who.appendChild(s);
+      var open = document.createElement('button'); open.type = 'button'; open.className = 'btn'; open.textContent = 'Apri';
+      open.onclick = function () {
+        var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt;
+        state = Object.assign(defaults(), r); fillForm(); update(); $('dlgArchivio').close();
+        toast('Caricato: ' + b.textContent);
+      };
+      var del = document.createElement('button'); del.type = 'button'; del.className = 'icon-btn'; del.setAttribute('aria-label', 'Elimina ' + b.textContent);
+      del.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+      del.style.color = 'var(--danger)';
+      del.onclick = function () {
+        if (!confirm('Eliminare il tesserino di ' + b.textContent + '?')) return;
+        lsSet(KEY_ARCH, lsGet(KEY_ARCH, []).filter(function (a) { return a.id !== rec.id; }));
+        openArchivio();
+      };
+      li.appendChild(img); li.appendChild(who); li.appendChild(open); li.appendChild(del);
+      ul.appendChild(li);
+    });
+    if (!$('dlgArchivio').open) $('dlgArchivio').showModal();
+  }
+  $('btnArchivio').onclick = openArchivio;
+  $('dlgChiudi').onclick = function () { $('dlgArchivio').close(); };
+
+  // ---------- avvio
+  state = Object.assign(defaults(), lsGet(KEY_DRAFT, {}));
+  fillForm();
+  render();
+  if (document.fonts) {
+    ['400 20px "Saira Stencil One"', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '700 20px "JetBrains Mono"']
+      .forEach(function (f) { document.fonts.load(f).then(render, function () {}); });
+    document.fonts.ready.then(render);
+  }
+  window.addEventListener('resize', function () { update(); });
+
+  if ('serviceWorker' in navigator && !ANDROID) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+})();
