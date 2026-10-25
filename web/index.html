@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#171915">
 <title>Tesserini Tauri</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="img/icon-192.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -17,6 +20,10 @@
     <h1>Tesserini Tauri</h1>
     <p>Generatore tessere di riconoscimento</p>
   </div>
+  <button type="button" class="icon-btn badge-btn" id="btnRichieste" aria-label="Richieste di accesso" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M17 8v6M14 11h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <span class="badge" id="richiesteBadge" hidden>0</span>
+  </button>
   <button type="button" class="icon-btn" id="btnArchivio" aria-label="Archivio tesserini">
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 7h18M5 7v12h14V7M9 11h6M4 3h16v4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
   </button>
@@ -98,6 +105,10 @@
       <button type="button" class="btn btn-ghost" id="btnSalva">Salva in archivio</button>
       <button type="button" class="btn btn-ghost" id="btnNuovo">Nuovo tesserino</button>
     </div>
+    <div class="account" id="accountBox" hidden>
+      <span>Connesso come <b id="accountEmail"></b></span>
+      <button type="button" class="link-btn" id="btnEsci">Esci</button>
+    </div>
   </section>
 </main>
 
@@ -119,6 +130,44 @@
   <p class="hint" id="archivioVuoto">Nessun tesserino salvato.</p>
 </dialog>
 
+<dialog id="dlgRichieste">
+  <div class="dlg-head">
+    <h2>Richieste di accesso</h2>
+    <button type="button" class="icon-btn" id="dlgRichiesteChiudi" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+  </div>
+  <ul id="listaRichieste" class="lista-utenti"></ul>
+  <p class="hint" id="richiesteVuoto">Nessuna richiesta in attesa.</p>
+  <h3 class="sub">Utenti</h3>
+  <ul id="listaUtenti" class="lista-utenti"></ul>
+  <p class="hint" id="utentiVuoto">Nessun altro utente.</p>
+</dialog>
+
+<div class="gate" id="gate" hidden>
+  <div class="gate-box">
+    <span class="gate-logo" aria-hidden="true"></span>
+    <h1>Tesserini Tauri</h1>
+    <p class="gate-sub">ASD Tauri Softair</p>
+    <div data-g="carico"><p>Caricamento…</p></div>
+    <div data-g="login">
+      <p>Accedi con il tuo account Google. Il primo accesso deve essere approvato dall'amministratore.</p>
+      <button type="button" class="btn btn-accent gate-btn" id="gLogin">Accedi con Google</button>
+    </div>
+    <div data-g="attesa">
+      <p>Richiesta di accesso inviata per <b class="g-email"></b>.</p>
+      <p>Appena l'amministratore la approva l'app si sblocca da sola.</p>
+      <button type="button" class="btn btn-ghost gate-btn g-esci">Usa un altro account</button>
+    </div>
+    <div data-g="rifiutato">
+      <p>L'accesso per <b class="g-email"></b> non è stato approvato.</p>
+      <button type="button" class="btn btn-ghost gate-btn g-esci">Usa un altro account</button>
+    </div>
+    <div data-g="errore"></div>
+    <p class="hint warn" id="gErr" role="alert"></p>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <template id="tplReferente">
@@ -132,6 +181,11 @@
   </div>
 </template>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="sync.js"></script>
 <script src="qr.js"></script>
 <script src="card.js"></script>
 <script src="app.js"></script>

@@ -23,6 +23,9 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Prepara la web app dentro l'APK
+        run: python3 scripts/prepare_www.py
+
       - name: Caratteri offline
         run: bash scripts/fetch-fonts.sh
 

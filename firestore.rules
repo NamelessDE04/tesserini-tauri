@@ -1,0 +1,34 @@
+rules_version = '2';
+// Regole di sicurezza Firestore per Tesserini Tauri.
+// Da incollare in console Firebase → Firestore Database → Regole → Pubblica.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'vaisittiluca@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function isApproved() {
+      return isAdmin() || (request.auth != null
+        && exists(/databases/$(database)/documents/utenti/$(request.auth.uid))
+        && get(/databases/$(database)/documents/utenti/$(request.auth.uid)).data.stato == 'approvato');
+    }
+
+    // Utenti e richieste di accesso
+    match /utenti/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      // chiunque si registri entra "in attesa"; solo l'amministratore può approvare
+      allow create: if request.auth != null && request.auth.uid == uid
+        && (isAdmin() || request.resource.data.stato == 'in_attesa')
+        && request.resource.data.keys().hasOnly(['email', 'nome', 'stato', 'richiestoIl']);
+      allow update, delete: if isAdmin();
+    }
+
+    // Archivio condiviso dei tesserini: solo utenti approvati
+    match /tessere/{id} {
+      allow read, write: if isApproved();
+    }
+  }
+}

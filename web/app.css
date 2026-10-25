@@ -118,3 +118,25 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   font-weight: 700; letter-spacing: 0.04em; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; max-width: calc(100vw - 32px); text-align: center;
 }
 .toast.show { opacity: 1; }
+
+/* --- accesso / richieste */
+body.locked { overflow: hidden; }
+.gate { position: fixed; inset: 0; z-index: 20; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 24px 16px; overflow-y: auto; }
+.gate-box { width: min(420px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.gate-box > div { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+.gate-box p { margin: 0; color: var(--ink); font-size: 17px; }
+.gate-logo { width: 120px; height: 120px; background: var(--accent); -webkit-mask: url(img/logo.png) center/contain no-repeat; mask: url(img/logo.png) center/contain no-repeat; }
+.gate h1 { font-family: 'Saira Stencil One', Impact, sans-serif; font-weight: 400; font-size: 30px; }
+.gate-sub { color: var(--muted) !important; font-size: 14px !important; letter-spacing: 0.2em; text-transform: uppercase; }
+.gate-btn { width: 100%; }
+.badge-btn { position: relative; }
+.badge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--danger); color: #171915; font: 700 12px/20px var(--cond); text-align: center; }
+.account { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 15px; color: var(--muted); flex-wrap: wrap; }
+.account b { color: var(--ink); word-break: break-all; }
+.lista-utenti { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lista-utenti li { display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--panel2); border-radius: 8px; flex-wrap: wrap; }
+.lista-utenti .who { flex: 1 1 160px; min-width: 0; }
+.lista-utenti .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lista-utenti .who span { font-size: 14px; color: var(--muted); word-break: break-all; }
+dialog h3.sub { margin: 16px 0 8px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+[hidden] { display: none !important; }

@@ -338,31 +338,35 @@
     });
   });
 
-  // ---------- archivio
+  // ---------- archivio (condiviso tramite TauriSync: Firebase, o locale se non configurato)
   function thumb() {
     var c = document.createElement('canvas');
     TauriCard.draw(c, cardData(), { logo: logo }, 0.4);
     return c.toDataURL('image/jpeg', 0.7);
   }
-  $('btnSalva').onclick = function () {
-    var arch = lsGet(KEY_ARCH, []);
-    if (!state.id) state.id = 't' + Date.now().toString(36);
+  var archivio = [];
+  window.TauriSync.onArchive(function (list) {
+    archivio = list.slice().sort(function (x, y) { return (y.savedAt || 0) - (x.savedAt || 0); });
+    if ($('dlgArchivio').open) drawArchivio();
+  });
+  $('btnSalva').onclick = busy($('btnSalva'), function () {
+    if (!state.id) state.id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     var rec = JSON.parse(JSON.stringify(state));
     rec.thumb = thumb(); rec.savedAt = Date.now();
-    var i = arch.findIndex(function (a) { return a.id === rec.id; });
-    if (i >= 0) arch[i] = rec; else arch.unshift(rec);
-    if (lsSet(KEY_ARCH, arch)) { saveDraft(); toast('Tesserino salvato in archivio'); }
-    else toast('Memoria piena: elimina qualche tesserino dall\'archivio');
-  };
+    saveDraft();
+    return window.TauriSync.save(rec).then(function (where) {
+      toast(where === 'cloud' ? 'Tesserino salvato nell\'archivio condiviso' : 'Tesserino salvato in archivio');
+    });
+  });
   $('btnNuovo').onclick = function () {
     state = defaults(); photoImg = null; fillForm(); update(); window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Nuovo tesserino');
   };
-  function openArchivio() {
-    var arch = lsGet(KEY_ARCH, []), ul = $('listaArchivio');
+  function drawArchivio() {
+    var ul = $('listaArchivio');
     ul.innerHTML = '';
-    $('archivioVuoto').hidden = arch.length > 0;
-    arch.forEach(function (rec) {
+    $('archivioVuoto').hidden = archivio.length > 0;
+    archivio.forEach(function (rec) {
       var li = document.createElement('li');
       var img = document.createElement('img'); img.src = rec.thumb || ''; img.alt = '';
       var who = document.createElement('div'); who.className = 'who';
@@ -371,7 +375,7 @@
       who.appendChild(b); who.appendChild(s);
       var open = document.createElement('button'); open.type = 'button'; open.className = 'btn'; open.textContent = 'Apri';
       open.onclick = function () {
-        var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt;
+        var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt; delete r.by;
         state = Object.assign(defaults(), r); fillForm(); update(); $('dlgArchivio').close();
         toast('Caricato: ' + b.textContent);
       };
@@ -379,17 +383,20 @@
       del.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
       del.style.color = 'var(--danger)';
       del.onclick = function () {
-        if (!confirm('Eliminare il tesserino di ' + b.textContent + '?')) return;
-        lsSet(KEY_ARCH, lsGet(KEY_ARCH, []).filter(function (a) { return a.id !== rec.id; }));
-        openArchivio();
+        if (!confirm('Eliminare il tesserino di ' + b.textContent + ' per tutti?')) return;
+        window.TauriSync.remove(rec.id).catch(function (e) { toast('Errore: ' + (e && e.message || e)); });
       };
       li.appendChild(img); li.appendChild(who); li.appendChild(open); li.appendChild(del);
       ul.appendChild(li);
     });
+  }
+  function openArchivio() {
+    drawArchivio();
     if (!$('dlgArchivio').open) $('dlgArchivio').showModal();
   }
   $('btnArchivio').onclick = openArchivio;
   $('dlgChiudi').onclick = function () { $('dlgArchivio').close(); };
+  window.TauriApp = { toast: toast, lsGet: lsGet, lsSet: lsSet, KEY_ARCH: KEY_ARCH, android: ANDROID };
 
   // ---------- avvio
   state = Object.assign(defaults(), lsGet(KEY_DRAFT, {}));
