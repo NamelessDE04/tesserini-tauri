@@ -24,6 +24,7 @@
   var api = {
     enabled: enabled,
     isAdmin: function () { return false; },
+    canStamp: function () { return true; },
     onArchive: function (cb) { cbs.push(cb); cb(list); },
     save: null,
     remove: null
@@ -63,8 +64,10 @@
   var db = firebase.firestore();
   try { db.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } catch (e) {}
 
-  var me = null, isAdmin = false, approved = false;
+  var me = null, isAdmin = false, approved = false, istruttore = false;
   api.isAdmin = function () { return isAdmin && approved; };
+  // può assegnare i brevetti: amministratore o account abilitato come istruttore
+  api.canStamp = function () { return approved && (isAdmin || istruttore); };
   function roleChanged() { try { window.dispatchEvent(new Event('tauri-role')); } catch (e) {} }
   var unsubUser = null, unsubArch = null, unsubAdmin = null;
 
@@ -84,7 +87,7 @@
   function stopAll() {
     [unsubUser, unsubArch, unsubAdmin].forEach(function (u) { if (u) u(); });
     unsubUser = unsubArch = unsubAdmin = null;
-    approved = false;
+    approved = false; istruttore = false;
     list = []; emit();
     roleChanged();
     var b = $('btnRichieste'); if (b) b.hidden = true;
@@ -159,9 +162,14 @@
       unsubUser = ref.onSnapshot(function (s) {
         var d = s.data() || {};
         var stato = isAdmin ? 'approvato' : (d.stato || 'in_attesa');
+        var nuovoIstr = !isAdmin && d.istruttore === true;
         if (stato === 'approvato') {
           hideGate();
-          if (!approved) { approved = true; startArchive(); if (isAdmin) startAdmin(user); roleChanged(); }
+          if (!approved) { approved = true; istruttore = nuovoIstr; startArchive(); if (isAdmin) startAdmin(user); roleChanged(); }
+          else if (nuovoIstr !== istruttore) {
+            istruttore = nuovoIstr; roleChanged();
+            toast(istruttore ? 'Ora puoi assegnare i brevetti' : 'Non puoi più assegnare i brevetti');
+          }
         } else {
           approved = false;
           if (unsubArch) { unsubArch(); unsubArch = null; }
@@ -204,7 +212,7 @@
     // I brevetti li scrive solo l'amministratore: per gli altri si lasciano quelli già salvati.
     var ref = db.collection('tessere').doc(r.id);
     var w;
-    if (isAdmin) w = ref.set(r);
+    if (api.canStamp()) w = ref.set(r);
     else { delete r.brevetti; w = ref.set(r, { merge: true }); }
     w.catch(function (e) { toast('Errore salvataggio: ' + (e.message || e)); });
     return Promise.resolve('cloud');
@@ -246,11 +254,20 @@
     }, function (e) { toast('Elenco utenti non disponibile: ' + (e.message || e)); });
   }
   function setStato(u, stato) {
-    db.collection('utenti').doc(u.uid).update({
+    var upd = {
       stato: stato,
       decisoIl: firebase.firestore.FieldValue.serverTimestamp(),
       decisoDa: me ? me.email : ''
-    }).catch(function (e) { toast('Errore: ' + (e.message || e)); });
+    };
+    if (stato !== 'approvato') upd.istruttore = false; // revocando l'accesso si toglie anche il permesso brevetti
+    db.collection('utenti').doc(u.uid).update(upd).catch(function (e) { toast('Errore: ' + (e.message || e)); });
+  }
+  function setIstruttore(u, val) {
+    var msg = val ? 'Permettere a ' + (u.email || '') + ' di assegnare e togliere i brevetti?'
+                  : 'Togliere a ' + (u.email || '') + ' il permesso di assegnare i brevetti?';
+    if (!confirm(msg)) return;
+    db.collection('utenti').doc(u.uid).update({ istruttore: val })
+      .catch(function (e) { toast('Errore: ' + (e.message || e)); });
   }
   function row(u, buttons) {
     var li = document.createElement('li');
@@ -279,10 +296,19 @@
     });
     $('utentiVuoto').hidden = others.length > 0;
     others.forEach(function (u) {
-      var li = u.stato === 'approvato'
-        ? row(u, [{ label: 'Revoca', fn: function () { if (confirm('Togliere l\'accesso a ' + (u.email || '') + '?')) setStato(u, 'rifiutato'); } }])
-        : row(u, [{ label: 'Abilita', fn: function () { setStato(u, 'approvato'); } }]);
-      li.querySelector('span').textContent += u.stato === 'approvato' ? ' · abilitato' : ' · non abilitato';
+      var li;
+      if (u.stato === 'approvato') {
+        li = row(u, [
+          u.istruttore
+            ? { label: 'Togli brevetti', fn: function () { setIstruttore(u, false); } }
+            : { label: 'Può dare brevetti', accent: true, fn: function () { setIstruttore(u, true); } },
+          { label: 'Revoca', fn: function () { if (confirm('Togliere l\'accesso a ' + (u.email || '') + '?')) setStato(u, 'rifiutato'); } }
+        ]);
+        li.querySelector('span').textContent += u.istruttore ? ' · abilitato · istruttore (brevetti)' : ' · abilitato';
+      } else {
+        li = row(u, [{ label: 'Abilita', fn: function () { setStato(u, 'approvato'); } }]);
+        li.querySelector('span').textContent += ' · non abilitato';
+      }
       la.appendChild(li);
     });
   }

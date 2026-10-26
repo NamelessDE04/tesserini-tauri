@@ -10,6 +10,22 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
 
+    function myUser() {
+      return get(/databases/$(database)/documents/utenti/$(request.auth.uid)).data;
+    }
+
+    // istruttore = utente approvato a cui l'amministratore ha dato il permesso di assegnare i brevetti
+    function isInstructor() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/utenti/$(request.auth.uid))
+        && myUser().stato == 'approvato'
+        && myUser().get('istruttore', false) == true;
+    }
+
+    function canStamp() {
+      return isAdmin() || isInstructor();
+    }
+
     function isApproved() {
       return isAdmin() || (request.auth != null
         && exists(/databases/$(database)/documents/utenti/$(request.auth.uid))
@@ -27,13 +43,13 @@ service cloud.firestore {
     }
 
     // Archivio condiviso dei tesserini: solo utenti approvati.
-    // I brevetti (timbri) li assegna o toglie solo l'amministratore.
+    // I brevetti (timbri) li assegnano o tolgono solo amministratore e istruttori.
     match /tessere/{id} {
       allow read: if isApproved();
       allow create: if isApproved()
-        && (isAdmin() || request.resource.data.get('brevetti', {}).size() == 0);
+        && (canStamp() || request.resource.data.get('brevetti', {}).size() == 0);
       allow update: if isApproved()
-        && (isAdmin() || request.resource.data.get('brevetti', {}) == resource.data.get('brevetti', {}));
+        && (canStamp() || request.resource.data.get('brevetti', {}) == resource.data.get('brevetti', {}));
       allow delete: if isAdmin()
         || (isApproved() && resource.data.get('brevetti', {}).size() == 0);
     }

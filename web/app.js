@@ -160,15 +160,15 @@
     update();
   };
 
-  // ---------- brevetti (li assegna solo l'amministratore)
-  function puoTimbrare() { return !window.TauriSync.enabled || window.TauriSync.isAdmin(); }
+  // ---------- brevetti (li assegnano l'amministratore e gli istruttori abilitati)
+  function puoTimbrare() { return !window.TauriSync.enabled || window.TauriSync.canStamp(); }
   function renderBrevetti() {
     var box = $('brevettiList'); box.innerHTML = '';
     var edit = puoTimbrare();
     if (!state.brevetti || typeof state.brevetti !== 'object') state.brevetti = {};
     $('brevettiHint').textContent = edit
       ? 'Spunta il brevetto quando l\'esame è superato e indica la data: sul retro compare il timbro.'
-      : 'I brevetti li assegna solo l\'amministratore dopo l\'esame.';
+      : 'I brevetti li assegnano solo l\'amministratore e gli istruttori abilitati, dopo l\'esame.';
     TauriCard.BREVETTI.forEach(function (b) {
       var row = document.createElement('div'); row.className = 'brev';
       var lab = document.createElement('label'); lab.className = 'check';
