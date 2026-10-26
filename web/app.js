@@ -241,10 +241,16 @@
       var r = cv.getBoundingClientRect();
       return { x: (ev.clientX - r.left) / r.width * TauriCard.W, y: (ev.clientY - r.top) / r.height * TauriCard.H };
     }
+    function inFoto(p) { return p.x >= 16 && p.x <= 152 && p.y >= 82 && p.y <= 258; }
+    // il tesserino lascia scorrere la pagina; solo toccando la foto (se c'è) si trascina la foto
+    cv.addEventListener('touchstart', function (ev) {
+      if (!photoImg || ev.touches.length !== 1) return;
+      if (inFoto(toCard(ev.touches[0]))) ev.preventDefault();
+    }, { passive: false });
     cv.addEventListener('pointerdown', function (ev) {
       if (!photoImg) return;
       var p = toCard(ev);
-      if (p.x < 16 || p.x > 152 || p.y < 82 || p.y > 258) return;
+      if (!inFoto(p)) return;
       drag = { x: p.x, y: p.y, sx: state.photoX, sy: state.photoY };
       cv.setPointerCapture(ev.pointerId);
     });
