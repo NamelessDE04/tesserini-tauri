@@ -1,5 +1,5 @@
 /* Service worker: l'app funziona anche senza connessione. */
-var CACHE = 'tesserini-tauri-v3';
+var CACHE = 'tesserini-tauri-v4';
 var FILES = [
   './', 'index.html', 'app.css', 'app.js', 'card.js', 'qr.js', 'config.js', 'sync.js', 'manifest.webmanifest',
   'img/logo.png', 'img/icon-192.png', 'img/icon-512.png', 'img/icon-maskable-512.png', 'img/apple-touch-icon.png'
@@ -20,7 +20,8 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
   // font Google: salvati in cache al primo uso
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' ||
+      (url.hostname === 'www.gstatic.com' && url.pathname.indexOf('/firebasejs/') === 0)) {
     e.respondWith(caches.open(CACHE).then(function (c) {
       return c.match(req).then(function (hit) {
         var net = fetch(req).then(function (res) { if (res.ok || res.type === 'opaque') c.put(req, res.clone()); return res; });

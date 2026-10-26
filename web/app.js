@@ -228,6 +228,7 @@
     return c;
   }
   var ANDROID = window.TauriAndroid || null;
+  var IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function blobB64(blob) {
     return new Promise(function (res, rej) {
       var r = new FileReader();
@@ -241,6 +242,17 @@
         var r = ANDROID.saveFile(b64, name, blob.type || 'application/octet-stream');
         if (r !== 'ok') throw new Error(r);
       });
+    }
+    // iPhone/iPad: il download diretto è poco affidabile (soprattutto dalla schermata Home),
+    // si usa il menu Condividi da cui scegliere "Salva su File" o "Salva immagine"
+    if (IOS && navigator.canShare) {
+      var f = new File([blob], name, { type: blob.type });
+      if (navigator.canShare({ files: [f] })) {
+        return navigator.share({ files: [f] }).then(function () { return 'ios'; }, function (e) {
+          if (e && e.name === 'AbortError') return 'ios';
+          throw e;
+        });
+      }
     }
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = name;
@@ -316,13 +328,13 @@
   function ensureFonts() { return document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve(); }
 
   $('expPng').onclick = busy($('expPng'), function () {
-    return ensureFonts().then(pngBlob).then(function (b) { return download(b, fileBase() + '.png'); }).then(function () { toast(ANDROID ? 'Immagine salvata in Download' : 'Immagine salvata'); });
+    return ensureFonts().then(pngBlob).then(function (b) { return download(b, fileBase() + '.png'); }).then(function (r) { if (r !== 'ios') toast(ANDROID ? 'Immagine salvata in Download' : 'Immagine salvata'); });
   });
   $('expPdf').onclick = busy($('expPdf'), function () {
-    return ensureFonts().then(function () { return download(pdfCard(), fileBase() + '.pdf'); }).then(function () { toast(ANDROID ? 'PDF salvato in Download' : 'PDF salvato'); });
+    return ensureFonts().then(function () { return download(pdfCard(), fileBase() + '.pdf'); }).then(function (r) { if (r !== 'ios') toast(ANDROID ? 'PDF salvato in Download' : 'PDF salvato'); });
   });
   $('expA4').onclick = busy($('expA4'), function () {
-    return ensureFonts().then(function () { return download(pdfA4(), fileBase() + '_A4.pdf'); }).then(function () { toast(ANDROID ? 'PDF A4 salvato in Download' : 'PDF A4 salvato'); });
+    return ensureFonts().then(function () { return download(pdfA4(), fileBase() + '_A4.pdf'); }).then(function (r) { if (r !== 'ios') toast(ANDROID ? 'PDF A4 salvato in Download' : 'PDF A4 salvato'); });
   });
   $('expShare').onclick = busy($('expShare'), function () {
     return ensureFonts().then(pngBlob).then(function (b) {

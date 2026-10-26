@@ -110,7 +110,9 @@
     p.setCustomParameters({ prompt: 'select_account' });
     auth.signInWithPopup(p).catch(function (e) {
       if (e && e.code === 'auth/popup-blocked') return auth.signInWithRedirect(p);
-      loginError(e && e.code === 'auth/popup-closed-by-user' ? 'Accesso annullato.' : 'Accesso non riuscito: ' + (e.message || e));
+      if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return loginError('Accesso annullato.');
+      if (e && e.code === 'auth/unauthorized-domain') return loginError('Questo indirizzo non è ancora autorizzato in Firebase (Authentication → Impostazioni → Domini autorizzati).');
+      loginError('Accesso non riuscito: ' + (e && (e.message || e.code) || e));
     });
   }
   function logout() {
