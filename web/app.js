@@ -4,9 +4,9 @@
   var $ = function (id) { return document.getElementById(id); };
   var KEY_DRAFT = 'tauri.bozza.v1';
   var KEY_ARCH = 'tauri.archivio.v1';
-  var EXPORT_SCALE = 1240 / TauriCard.W; // 105 mm a 300 dpi
+  var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
 
-  var FIELDS = ['cognome', 'nome', 'callsign', 'numero', 'sangue', 'grado', 'tier', 'tema', 'note'];
+  var FIELDS = ['cognome', 'nome', 'callsign', 'numero', 'rilascio', 'sangue', 'grado', 'tier', 'tema', 'note'];
   var state = defaults();
   var photoImg = null;
   var logo = new Image();
@@ -17,8 +17,13 @@
     return {
       id: null, cognome: '', nome: '', callsign: '', numero: '', sangue: '', grado: 'Soldato semplice', tier: '4', tema: 'notte',
       note: '', qrDati: true, referenti: [{ nome: '', ruolo: '', tel: '' }],
-      photoData: null, photoZoom: 1, photoX: 0, photoY: 0
+      photoData: null, photoZoom: 1, photoX: 0, photoY: 0,
+      rilascio: oggi(), brevetti: {}
     };
+  }
+  function oggi() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
   // ---------- storage
@@ -67,6 +72,7 @@
     var scale = Math.min(4, Math.max(1, (w * (window.devicePixelRatio || 1)) / TauriCard.W));
     var txt = qrText();
     var info = TauriCard.draw(cv, cardData(txt), { logo: logo }, scale);
+    TauriCard.drawBack($('previewBack'), cardData(txt), { logo: logo }, scale);
     $('qrPreview').textContent = txt || '(vuoto: aggiungi almeno un referente o i dati operatore)';
     var qi = $('qrInfo');
     if (!txt) { qi.textContent = 'QR vuoto: compila i referenti per generarlo.'; qi.className = 'hint'; }
@@ -77,6 +83,7 @@
   function cardData(txt) {
     return {
       cognome: state.cognome, nome: state.nome, callsign: state.callsign, numero: state.numero,
+      rilascio: state.rilascio, brevetti: state.brevetti || {},
       sangue: state.sangue, grado: state.grado, tier: state.tier, tema: state.tema,
       photo: photoImg, photoZoom: state.photoZoom, photoX: state.photoX, photoY: state.photoY,
       qrText: txt === undefined ? qrText() : txt
@@ -119,6 +126,7 @@
     $('qrDati').checked = !!state.qrDati;
     $('photoZoom').value = state.photoZoom; $('photoX').value = state.photoX; $('photoY').value = state.photoY;
     renderReferenti();
+    renderBrevetti();
     loadPhoto(state.photoData);
   }
 
@@ -151,6 +159,46 @@
     var rows = $('referenti').querySelectorAll('.r-nome'); rows[rows.length - 1].focus();
     update();
   };
+
+  // ---------- brevetti (li assegna solo l'amministratore)
+  function puoTimbrare() { return !window.TauriSync.enabled || window.TauriSync.isAdmin(); }
+  function renderBrevetti() {
+    var box = $('brevettiList'); box.innerHTML = '';
+    var edit = puoTimbrare();
+    if (!state.brevetti || typeof state.brevetti !== 'object') state.brevetti = {};
+    $('brevettiHint').textContent = edit
+      ? 'Spunta il brevetto quando l\'esame è superato e indica la data: sul retro compare il timbro.'
+      : 'I brevetti li assegna solo l\'amministratore dopo l\'esame.';
+    TauriCard.BREVETTI.forEach(function (b) {
+      var row = document.createElement('div'); row.className = 'brev';
+      var lab = document.createElement('label'); lab.className = 'check';
+      var cb = document.createElement('input'); cb.type = 'checkbox';
+      var dt = document.createElement('input'); dt.type = 'date';
+      dt.setAttribute('aria-label', 'Data esame ' + b.nome);
+      cb.checked = !!state.brevetti[b.id];
+      dt.value = state.brevetti[b.id] || '';
+      cb.disabled = dt.disabled = !edit;
+      dt.hidden = !cb.checked;
+      cb.onchange = function () {
+        if (cb.checked) { state.brevetti[b.id] = dt.value || oggi(); dt.value = state.brevetti[b.id]; }
+        else delete state.brevetti[b.id];
+        dt.hidden = !cb.checked; update();
+      };
+      dt.oninput = function () { if (cb.checked && dt.value) { state.brevetti[b.id] = dt.value; update(); } };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(' ' + b.nome));
+      row.appendChild(lab); row.appendChild(dt); box.appendChild(row);
+    });
+  }
+  window.addEventListener('tauri-role', function () { renderBrevetti(); });
+
+  // fronte / retro
+  function lato(retro) {
+    $('preview').hidden = retro; $('previewBack').hidden = !retro;
+    $('tabFronte').setAttribute('aria-pressed', String(!retro));
+    $('tabRetro').setAttribute('aria-pressed', String(retro));
+  }
+  $('tabFronte').onclick = function () { lato(false); };
+  $('tabRetro').onclick = function () { lato(true); };
 
   // ---------- foto
   function loadPhoto(dataUrl) {
@@ -196,7 +244,7 @@
     cv.addEventListener('pointerdown', function (ev) {
       if (!photoImg) return;
       var p = toCard(ev);
-      if (p.x < 12 || p.x > 124 || p.y < 66 || p.y > 216) return;
+      if (p.x < 16 || p.x > 152 || p.y < 82 || p.y > 258) return;
       drag = { x: p.x, y: p.y, sx: state.photoX, sy: state.photoY };
       cv.setPointerCapture(ev.pointerId);
     });
@@ -204,8 +252,8 @@
       if (!drag) return;
       var p = toCard(ev);
       var iw = photoImg.naturalWidth, ih = photoImg.naturalHeight;
-      var z = Math.max(112 / iw, 150 / ih) * state.photoZoom;
-      var ox = (iw * z - 112) / 2, oy = (ih * z - 150) / 2;
+      var z = Math.max(136 / iw, 176 / ih) * state.photoZoom;
+      var ox = (iw * z - 136) / 2, oy = (ih * z - 176) / 2;
       var clamp = function (v) { return Math.max(-1, Math.min(1, v)); };
       if (ox > 0.5) state.photoX = clamp(drag.sx + (p.x - drag.x) / ox);
       if (oy > 0.5) state.photoY = clamp(drag.sy + (p.y - drag.y) / oy);
@@ -225,6 +273,21 @@
   function hiRes() {
     var c = document.createElement('canvas');
     TauriCard.draw(c, cardData(), { logo: logo }, EXPORT_SCALE);
+    return c;
+  }
+  function hiResBack() {
+    var c = document.createElement('canvas');
+    TauriCard.drawBack(c, cardData(), { logo: logo }, EXPORT_SCALE);
+    return c;
+  }
+  // fronte e retro affiancati in un'unica immagine
+  function hiResBoth() {
+    var f = hiRes(), b = hiResBack(), gap = 60;
+    var c = document.createElement('canvas');
+    c.width = f.width * 2 + gap; c.height = f.height;
+    var x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
+    x.drawImage(f, 0, 0); x.drawImage(b, f.width + gap, 0);
     return c;
   }
   var ANDROID = window.TauriAndroid || null;
@@ -260,7 +323,7 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
   }
   function pngBlob() {
-    return new Promise(function (res) { hiRes().toBlob(res, 'image/png'); });
+    return new Promise(function (res) { hiResBoth().toBlob(res, 'image/png'); });
   }
 
   function b64ToBytes(b64) {
@@ -268,53 +331,69 @@
     for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
-  // PDF minimale con una pagina e un'immagine JPEG
-  function makePdf(jpeg, imgW, imgH, pageW, pageH, place, extra) {
+  // PDF minimale: pagine con immagini JPEG (ed eventuali segni di taglio/testo)
+  // pages: [{ w, h, imgs: [{ i, x, y, w, h }], extra }], images: [{ jpeg, w, h }]
+  function makePdf(pages, images) {
     var parts = [], len = 0, offsets = [];
-    function add(x) { var b = typeof x === 'string' ? latin1(x) : x; parts.push(b); len += b.length; }
     function latin1(s) { var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
-    function obj(n, body) { offsets[n] = len; add(n + ' 0 obj\n' + body + '\nendobj\n'); }
+    function add(x) { var b = typeof x === 'string' ? latin1(x) : x; parts.push(b); len += b.length; }
     var f = function (v) { return (Math.round(v * 100) / 100).toString(); };
-    var content = 'q ' + f(place.w) + ' 0 0 ' + f(place.h) + ' ' + f(place.x) + ' ' + f(place.y) + ' cm /Im0 Do Q\n' + (extra || '');
-
+    var nPages = pages.length, firstPage = 3, firstImg = firstPage + nPages * 2, fontObj = firstImg + images.length;
+    var total = fontObj;
     add('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    function obj(n, body) { offsets[n] = len; add(n + ' 0 obj\n' + body + '\nendobj\n'); }
     obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
-    obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-    obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + f(pageW) + ' ' + f(pageH) + '] /Resources << /XObject << /Im0 5 0 R >> /Font << /F1 6 0 R >> >> /Contents 4 0 R >>');
-    obj(4, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
-    offsets[5] = len;
-    add('5 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + imgW + ' /Height ' + imgH + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n');
-    add(jpeg);
-    add('\nendstream\nendobj\n');
-    obj(6, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    var xref = len;
-    var x = 'xref\n0 7\n0000000000 65535 f \n';
-    for (var i = 1; i <= 6; i++) x += ('0000000000' + offsets[i]).slice(-10) + ' 00000 n \n';
-    add(x + 'trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+    var kids = pages.map(function (p, k) { return (firstPage + k * 2) + ' 0 R'; }).join(' ');
+    obj(2, '<< /Type /Pages /Kids [' + kids + '] /Count ' + nPages + ' >>');
+    var xo = images.map(function (im, k) { return '/Im' + k + ' ' + (firstImg + k) + ' 0 R'; }).join(' ');
+    pages.forEach(function (p, k) {
+      var content = p.imgs.map(function (it) {
+        return 'q ' + f(it.w) + ' 0 0 ' + f(it.h) + ' ' + f(it.x) + ' ' + f(it.y) + ' cm /Im' + it.i + ' Do Q\n';
+      }).join('') + (p.extra || '');
+      obj(firstPage + k * 2, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + f(p.w) + ' ' + f(p.h) + '] /Resources << /XObject << ' + xo + ' >> /Font << /F1 ' + fontObj + ' 0 R >> >> /Contents ' + (firstPage + k * 2 + 1) + ' 0 R >>');
+      obj(firstPage + k * 2 + 1, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+    });
+    images.forEach(function (im, k) {
+      offsets[firstImg + k] = len;
+      add((firstImg + k) + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + im.w + ' /Height ' + im.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.jpeg.length + ' >>\nstream\n');
+      add(im.jpeg);
+      add('\nendstream\nendobj\n');
+    });
+    obj(fontObj, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    var xref = len, x = 'xref\n0 ' + (total + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i <= total; i++) x += ('0000000000' + offsets[i]).slice(-10) + ' 00000 n \n';
+    add(x + 'trailer\n<< /Size ' + (total + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
     var out = new Uint8Array(len), p = 0;
     parts.forEach(function (b) { out.set(b, p); p += b.length; });
     return new Blob([out], { type: 'application/pdf' });
   }
-  var MM = 72 / 25.4, CW = 105 * MM, CH = 85 * MM;
+  var MM = 72 / 25.4, CW = 88 * MM, CH = 140 * MM;
+  function jpg(c) { return { jpeg: b64ToBytes(c.toDataURL('image/jpeg', 0.95).split(',')[1]), w: c.width, h: c.height }; }
+  // due pagine 88 x 140 mm: fronte e retro
   function pdfCard() {
-    var c = hiRes();
-    var jpeg = b64ToBytes(c.toDataURL('image/jpeg', 0.95).split(',')[1]);
-    return makePdf(jpeg, c.width, c.height, CW, CH, { x: 0, y: 0, w: CW, h: CH });
+    var imgs = [jpg(hiRes()), jpg(hiResBack())];
+    return makePdf([
+      { w: CW, h: CH, imgs: [{ i: 0, x: 0, y: 0, w: CW, h: CH }] },
+      { w: CW, h: CH, imgs: [{ i: 1, x: 0, y: 0, w: CW, h: CH }] }
+    ], imgs);
   }
+  // A4: fronte e retro affiancati a grandezza reale, con segni di taglio
   function pdfA4() {
-    var c = hiRes();
-    var jpeg = b64ToBytes(c.toDataURL('image/jpeg', 0.95).split(',')[1]);
-    var PW = 210 * MM, PH = 297 * MM;
-    var x = (PW - CW) / 2, y = PH - 25 * MM - CH;
-    var g = 3 * MM, l = 8 * MM, ops = '0 G 0.5 w\n';
-    function ln(x1, y1, x2, y2) { ops += x1.toFixed(2) + ' ' + y1.toFixed(2) + ' m ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + ' l S\n'; }
-    [[x, y], [x + CW, y], [x, y + CH], [x + CW, y + CH]].forEach(function (pt, i) {
-      var sx = (i % 2 === 0) ? -1 : 1, sy = (i < 2) ? -1 : 1;
-      ln(pt[0] + sx * g, pt[1], pt[0] + sx * (g + l), pt[1]);
-      ln(pt[0], pt[1] + sy * g, pt[0], pt[1] + sy * (g + l));
+    var imgs = [jpg(hiRes()), jpg(hiResBack())];
+    var PW = 210 * MM, PH = 297 * MM, gap = 10 * MM;
+    var x1 = (PW - CW * 2 - gap) / 2, x2 = x1 + CW + gap, y = PH - 25 * MM - CH;
+    var g = 2 * MM, l = 6 * MM, ops = '0 G 0.5 w\n';
+    function ln(ax, ay, bx, by) { ops += ax.toFixed(2) + ' ' + ay.toFixed(2) + ' m ' + bx.toFixed(2) + ' ' + by.toFixed(2) + ' l S\n'; }
+    [x1, x2].forEach(function (x) {
+      [[x, y], [x + CW, y], [x, y + CH], [x + CW, y + CH]].forEach(function (pt, i) {
+        var sx = (i % 2 === 0) ? -1 : 1, sy = (i < 2) ? -1 : 1;
+        ln(pt[0] + sx * g, pt[1], pt[0] + sx * (g + l), pt[1]);
+        ln(pt[0], pt[1] + sy * g, pt[0], pt[1] + sy * (g + l));
+      });
     });
-    ops += 'BT /F1 9 Tf 0 g ' + x.toFixed(2) + ' ' + (y - 14 * MM).toFixed(2) + ' Td (Tesserino 105 x 85 mm - stampare al 100% (dimensione reale) e ritagliare sui segni) Tj ET\n';
-    return makePdf(jpeg, c.width, c.height, PW, PH, { x: x, y: y, w: CW, h: CH }, ops);
+    ops += 'BT /F1 9 Tf 0 g ' + x1.toFixed(2) + ' ' + (y - 12 * MM).toFixed(2) + ' Td (Tesserino 88 x 140 mm - a sinistra il fronte, a destra il retro) Tj ET\n';
+    ops += 'BT /F1 9 Tf 0 g ' + x1.toFixed(2) + ' ' + (y - 17 * MM).toFixed(2) + ' Td (Stampare al 100% \\(dimensione reale\\) e ritagliare sui segni.) Tj ET\n';
+    return makePdf([{ w: PW, h: PH, imgs: [{ i: 0, x: x1, y: y, w: CW, h: CH }, { i: 1, x: x2, y: y, w: CW, h: CH }], extra: ops }], imgs);
   }
 
   function busy(btn, fn) {

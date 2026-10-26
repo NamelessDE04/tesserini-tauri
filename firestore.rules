@@ -26,9 +26,16 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Archivio condiviso dei tesserini: solo utenti approvati
+    // Archivio condiviso dei tesserini: solo utenti approvati.
+    // I brevetti (timbri) li assegna o toglie solo l'amministratore.
     match /tessere/{id} {
-      allow read, write: if isApproved();
+      allow read: if isApproved();
+      allow create: if isApproved()
+        && (isAdmin() || request.resource.data.get('brevetti', {}).size() == 0);
+      allow update: if isApproved()
+        && (isAdmin() || request.resource.data.get('brevetti', {}) == resource.data.get('brevetti', {}));
+      allow delete: if isAdmin()
+        || (isApproved() && resource.data.get('brevetti', {}).size() == 0);
     }
   }
 }

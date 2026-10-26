@@ -23,6 +23,7 @@
 
   var api = {
     enabled: enabled,
+    isAdmin: function () { return false; },
     onArchive: function (cb) { cbs.push(cb); cb(list); },
     save: null,
     remove: null
@@ -63,6 +64,8 @@
   try { db.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } catch (e) {}
 
   var me = null, isAdmin = false, approved = false;
+  api.isAdmin = function () { return isAdmin && approved; };
+  function roleChanged() { try { window.dispatchEvent(new Event('tauri-role')); } catch (e) {} }
   var unsubUser = null, unsubArch = null, unsubAdmin = null;
 
   function showGate(which, email) {
@@ -83,6 +86,7 @@
     unsubUser = unsubArch = unsubAdmin = null;
     approved = false;
     list = []; emit();
+    roleChanged();
     var b = $('btnRichieste'); if (b) b.hidden = true;
   }
 
@@ -157,7 +161,7 @@
         var stato = isAdmin ? 'approvato' : (d.stato || 'in_attesa');
         if (stato === 'approvato') {
           hideGate();
-          if (!approved) { approved = true; startArchive(); if (isAdmin) startAdmin(user); }
+          if (!approved) { approved = true; startArchive(); if (isAdmin) startAdmin(user); roleChanged(); }
         } else {
           approved = false;
           if (unsubArch) { unsubArch(); unsubArch = null; }
@@ -196,8 +200,13 @@
     if (!approved) return Promise.reject(new Error('accesso non ancora approvato'));
     var r = withAuthor(rec);
     if (JSON.stringify(r).length > MAX_DOC) return Promise.reject(new Error('foto troppo grande, riprova con un\'altra immagine'));
-    // con la cache offline la scrittura è subito visibile; si sincronizza appena c'è rete
-    db.collection('tessere').doc(r.id).set(r).catch(function (e) { toast('Errore salvataggio: ' + (e.message || e)); });
+    // con la cache offline la scrittura è subito visibile; si sincronizza appena c'è rete.
+    // I brevetti li scrive solo l'amministratore: per gli altri si lasciano quelli già salvati.
+    var ref = db.collection('tessere').doc(r.id);
+    var w;
+    if (isAdmin) w = ref.set(r);
+    else { delete r.brevetti; w = ref.set(r, { merge: true }); }
+    w.catch(function (e) { toast('Errore salvataggio: ' + (e.message || e)); });
     return Promise.resolve('cloud');
   };
   api.remove = function (id) {

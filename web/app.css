@@ -35,8 +35,8 @@ h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: 0.04em; }
 main { max-width: 720px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 
 .preview-wrap { display: flex; flex-direction: column; gap: 6px; }
-#preview {
-  width: 100%; height: auto; display: block;
+#preview, #previewBack {
+  width: 100%; max-width: 340px; margin: 0 auto; height: auto; display: block;
   border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.45);
   touch-action: none; background: #171915;
 }
@@ -140,3 +140,14 @@ body.locked { overflow: hidden; }
 .lista-utenti .who span { font-size: 14px; color: var(--muted); word-break: break-all; }
 dialog h3.sub { margin: 16px 0 8px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
 [hidden] { display: none !important; }
+
+/* --- fronte/retro e brevetti */
+.tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-width: 340px; width: 100%; margin: 0 auto 4px; }
+.tab { min-height: 44px; background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; font: 700 14px var(--cond); letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.brev-list { display: flex; flex-direction: column; }
+.brev { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.brev .check { flex: 1 1 160px; }
+.brev input[type=date] { width: auto; flex: 0 1 170px; }
+input[type=date] { width: 100%; min-height: 46px; padding: 10px 12px; background: var(--panel2); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; font: 600 17px var(--cond); color-scheme: dark; }
+input:disabled { opacity: 0.6; }

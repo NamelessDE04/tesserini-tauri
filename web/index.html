@@ -35,7 +35,12 @@
 
 <main>
   <section class="preview-wrap">
-    <canvas id="preview" aria-label="Anteprima tesserino"></canvas>
+    <div class="tabs" role="group" aria-label="Lato del tesserino">
+      <button type="button" class="tab" id="tabFronte" aria-pressed="true">Fronte</button>
+      <button type="button" class="tab" id="tabRetro" aria-pressed="false">Retro · brevetti</button>
+    </div>
+    <canvas id="preview" aria-label="Anteprima fronte del tesserino"></canvas>
+    <canvas id="previewBack" aria-label="Anteprima retro con i brevetti" hidden></canvas>
     <p class="hint" id="qrInfo"></p>
   </section>
 
@@ -69,6 +74,7 @@
       <label>Nome <input type="text" id="nome" autocomplete="off" autocapitalize="characters"></label>
       <label>Callsign <input type="text" id="callsign" autocomplete="off" autocapitalize="characters"></label>
       <label>N° tessera <input type="text" id="numero" autocomplete="off" autocapitalize="characters" placeholder="TS-0001"></label>
+      <label>Data di rilascio <input type="date" id="rilascio"></label>
       <label>Gruppo sanguigno
         <select id="sangue">
           <option value="">—</option>
@@ -86,6 +92,12 @@
         <select id="tema"><option value="notte">Notte</option><option value="oliva">Verde oliva</option><option value="deserto">Deserto</option></select>
       </label>
     </div>
+  </section>
+
+  <section class="card">
+    <h2>Brevetti</h2>
+    <p class="hint" id="brevettiHint"></p>
+    <div id="brevettiList" class="brev-list"></div>
   </section>
 
   <section class="card">
