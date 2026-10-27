@@ -57,7 +57,21 @@
     };
   }
   var raf = null;
-  function update() { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { raf = null; render(); }); saveDraft(); }
+  function update() { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { raf = null; render(); }); segnaModificato(); saveDraft(); }
+
+  // ---------- stato del salvataggio (mostrato sotto l'anteprima e sul tasto Salva)
+  var KEY_DIRTY = 'tauri.modificato.v1';
+  var dirty = !!lsGet(KEY_DIRTY, false);
+  function mostraStato() {
+    var el = $('saveState'), bt = $('btnSalva');
+    if (!el) return;
+    bt.classList.toggle('dirty', dirty);
+    if (dirty) { el.textContent = '● Modifiche non salvate: tocca Salva'; el.className = 'save-state dirty'; }
+    else if (state.id) { el.textContent = '✓ Salvato in archivio'; el.className = 'save-state ok'; }
+    else { el.textContent = 'Nuovo tesserino · non ancora in archivio'; el.className = 'save-state'; }
+  }
+  function segnaModificato() { if (!dirty) { dirty = true; lsSet(KEY_DIRTY, true); } mostraStato(); }
+  function segnaSalvato() { dirty = false; lsSet(KEY_DIRTY, false); mostraStato(); }
 
   // ---------- form binding
   FIELDS.forEach(function (f) {
@@ -151,14 +165,14 @@
       state.photoZoom = 1; state.photoX = 0; state.photoY = 0;
       $('photoZoom').value = 1; $('photoX').value = 0; $('photoY').value = 0;
       loadPhoto(state.photoData);
-      saveDraft();
+      segnaModificato(); saveDraft();
     };
     img.onerror = function () { URL.revokeObjectURL(url); toast('Impossibile aprire questa immagine'); };
     img.src = url;
   }
   $('fotoCamera').addEventListener('change', onFile);
   $('fotoGalleria').addEventListener('change', onFile);
-  $('fotoRimuovi').onclick = function () { state.photoData = null; loadPhoto(null); saveDraft(); };
+  $('fotoRimuovi').onclick = function () { state.photoData = null; loadPhoto(null); segnaModificato(); saveDraft(); };
 
   // trascinamento foto sull'anteprima
   (function () {
@@ -356,11 +370,15 @@
     rec.thumb = thumb(); rec.savedAt = Date.now();
     saveDraft();
     return window.TauriSync.save(rec).then(function (where) {
-      toast(where === 'cloud' ? 'Tesserino salvato nell\'archivio condiviso' : 'Tesserino salvato in archivio');
+      segnaSalvato();
+      toast(where === 'cloud' ? 'Salvato nell\'archivio condiviso' : 'Salvato in archivio');
     });
   });
   $('btnNuovo').onclick = function () {
-    state = defaults(); photoImg = null; fillForm(); update(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (dirty && !confirm('Il tesserino aperto ha modifiche non salvate. Iniziarne uno nuovo comunque?')) return;
+    state = defaults(); photoImg = null; fillForm(); render(); saveDraft(); segnaSalvato();
+    if ($('dlgArchivio').open) $('dlgArchivio').close();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     toast('Nuovo tesserino');
   };
   function drawArchivio() {
@@ -377,7 +395,9 @@
       var open = document.createElement('button'); open.type = 'button'; open.className = 'btn'; open.textContent = 'Apri';
       open.onclick = function () {
         var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt; delete r.by;
-        state = Object.assign(defaults(), r); fillForm(); update(); $('dlgArchivio').close();
+        if (dirty && !confirm('Il tesserino aperto ha modifiche non salvate. Aprire comunque questo?')) return;
+        state = Object.assign(defaults(), r); fillForm(); render(); saveDraft(); segnaSalvato(); $('dlgArchivio').close();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         toast('Caricato: ' + b.textContent);
       };
       var del = document.createElement('button'); del.type = 'button'; del.className = 'icon-btn'; del.setAttribute('aria-label', 'Elimina ' + b.textContent);
@@ -408,7 +428,19 @@
       .forEach(function (f) { document.fonts.load(f).then(render, function () {}); });
     document.fonts.ready.then(render);
   }
-  window.addEventListener('resize', function () { update(); });
+  window.addEventListener('resize', function () { render(); });
+  mostraStato();
+
+  // ---------- menu "Stampa e invia"
+  $('btnEsporta').onclick = function () { $('dlgEsporta').showModal(); };
+  $('dlgEsportaChiudi').onclick = function () { $('dlgEsporta').close(); };
+  ['expShare', 'expPng', 'expA4', 'expPdf'].forEach(function (id) {
+    $(id).addEventListener('click', function () { $('dlgEsporta').close(); });
+  });
+  // tocco fuori dal pannello = chiudi
+  ['dlgEsporta', 'dlgArchivio'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) { if (e.target === $(id)) $(id).close(); });
+  });
 
   if ('serviceWorker' in navigator && !ANDROID) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });

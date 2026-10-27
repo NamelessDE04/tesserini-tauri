@@ -155,7 +155,7 @@
     var email = (user.email || '').toLowerCase();
     isAdmin = !!ADMIN && email === ADMIN && user.emailVerified !== false;
     $('accountEmail').textContent = user.email || '';
-    $('accountBox').hidden = false;
+    $('accountCard').hidden = false;
     showGate('carico');
 
     var ref = db.collection('utenti').doc(user.uid);
