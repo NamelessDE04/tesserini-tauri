@@ -79,8 +79,24 @@
     Array.prototype.forEach.call(g.querySelectorAll('[data-g]'), function (el) { el.hidden = el.getAttribute('data-g') !== which; });
     if (email) Array.prototype.forEach.call(g.querySelectorAll('.g-email'), function (el) { el.textContent = email; });
     if (which !== 'errore') $('gErr').textContent = '';
+    watchdog(which);
+  }
+  // se il caricamento resta fermo troppo a lungo, si mostra cosa fare invece di restare bloccati
+  var cTimer = null;
+  function watchdog(which) {
+    clearTimeout(cTimer);
+    if (which !== 'carico') return;
+    cTimer = setTimeout(function () {
+      var g = $('gate');
+      if (g.hidden) return;
+      var vis = g.querySelector('[data-g="carico"]');
+      if (vis && !vis.hidden) {
+        showErrore('Il caricamento sta impiegando troppo. Controlla la connessione e riprova; se non si sblocca, esci e rientra.');
+      }
+    }, 15000);
   }
   function hideGate() {
+    clearTimeout(cTimer);
     $('gate').hidden = true;
     document.body.classList.remove('locked');
   }
@@ -159,44 +175,50 @@
     showGate('carico');
 
     var ref = db.collection('utenti').doc(user.uid);
-    ref.get().then(function (snap) {
-      if (!snap.exists) {
-        return ref.set({
-          email: email,
-          nome: user.displayName || '',
-          stato: isAdmin ? 'approvato' : 'in_attesa',
-          richiestoIl: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    }).then(function () { return true; }, function (e) {
-      // offline: si prosegue con la cache; un rifiuto del server invece va mostrato
-      if (e && e.code === 'permission-denied') {
-        showErrore('Registrazione della richiesta rifiutata dal server (' + e.code + '). Controlla le regole di Firestore.');
-        return false;
-      }
-      return true;
-    }).then(function (ok) {
-      if (!ok || me !== user) return;
-      unsubUser = ref.onSnapshot(function (s) {
-        var d = s.data() || {};
-        var stato = isAdmin ? 'approvato' : (d.stato || 'in_attesa');
-        var nuovoIstr = !isAdmin && d.istruttore === true;
-        if (stato === 'approvato') {
-          hideGate();
-          if (!approved) { approved = true; istruttore = nuovoIstr; startArchive(); if (isAdmin) startAdmin(user); roleChanged(); }
-          else if (nuovoIstr !== istruttore) {
-            istruttore = nuovoIstr; roleChanged();
-            toast(istruttore ? 'Ora puoi assegnare i brevetti' : 'Non puoi più assegnare i brevetti');
-          }
-        } else {
-          approved = false;
-          if (unsubArch) { unsubArch(); unsubArch = null; }
-          list = []; emit();
-          showGate(stato === 'rifiutato' ? 'rifiutato' : 'attesa', user.email);
+    // l'amministratore entra subito, senza aspettare il database
+    if (isAdmin) {
+      hideGate();
+      approved = true; startArchive(); startAdmin(user); roleChanged();
+      ref.set({ email: email, nome: user.displayName || '', stato: 'approvato' }, { merge: true }).catch(function () {});
+      return;
+    }
+    var creata = false;
+    unsubUser = ref.onSnapshot(function (s) {
+      if (me !== user) return;
+      if (!s.exists) {
+        // la richiesta si crea solo quando il server conferma che non esiste (non dalla cache)
+        if (!s.metadata.fromCache && !creata) {
+          creata = true;
+          ref.set({
+            email: email,
+            nome: user.displayName || '',
+            stato: 'in_attesa',
+            richiestoIl: firebase.firestore.FieldValue.serverTimestamp()
+          }).catch(function (e) {
+            showErrore('Registrazione della richiesta rifiutata dal server (' + (e && e.code || e) + ').');
+          });
         }
-      }, function (e) {
-        showErrore('Impossibile leggere lo stato dell\'account (' + (e && e.code || e) + ').');
-      });
+        showGate('attesa', user.email);
+        return;
+      }
+      var d = s.data() || {};
+      var stato = d.stato || 'in_attesa';
+      var nuovoIstr = d.istruttore === true;
+      if (stato === 'approvato') {
+        hideGate();
+        if (!approved) { approved = true; istruttore = nuovoIstr; startArchive(); roleChanged(); }
+        else if (nuovoIstr !== istruttore) {
+          istruttore = nuovoIstr; roleChanged();
+          toast(istruttore ? 'Ora puoi assegnare i brevetti' : 'Non puoi più assegnare i brevetti');
+        }
+      } else {
+        approved = false;
+        if (unsubArch) { unsubArch(); unsubArch = null; }
+        list = []; emit();
+        showGate(stato === 'rifiutato' ? 'rifiutato' : 'attesa', user.email);
+      }
+    }, function (e) {
+      showErrore('Impossibile leggere lo stato dell\'account (' + (e && e.code || e) + ').');
     });
   });
 
