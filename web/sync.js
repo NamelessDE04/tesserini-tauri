@@ -91,7 +91,7 @@
       if (g.hidden) return;
       var vis = g.querySelector('[data-g="carico"]');
       if (vis && !vis.hidden) {
-        showErrore('Il caricamento sta impiegando troppo. Controlla la connessione e riprova; se non si sblocca, esci e rientra.');
+        showErrore('Il caricamento sta impiegando troppo (fermo su: ' + fase + '). Tocca Riprova; se non si sblocca, esci e rientra.');
       }
     }, 15000);
   }
@@ -160,11 +160,10 @@
   })();
 
   // esito di un eventuale accesso con reindirizzamento (iPhone, popup bloccati)
-  auth.getRedirectResult().catch(function (e) {
-    if (e && e.code) loginError('Accesso non riuscito [' + e.code + ']: ' + (e.message || ''));
-  });
+  var fase = 'avvio dell\'accesso Google';
 
   auth.onAuthStateChanged(function (user) {
+    fase = 'lettura dei dati dal database';
     stopAll();
     me = user;
     if (!user) { showGate('login'); $('gLogin').disabled = false; return; }

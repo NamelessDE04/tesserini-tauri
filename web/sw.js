@@ -1,5 +1,5 @@
 /* Service worker: l'app funziona anche senza connessione. */
-var CACHE = 'tesserini-tauri-v22';
+var CACHE = 'tesserini-tauri-v23';
 var FILES = [
   './', 'index.html', 'app.css', 'app.js', 'card.js', 'config.js', 'sync.js', 'manifest.webmanifest',
   'img/logo.png', 'img/icon-192.png', 'img/icon-512.png', 'img/icon-maskable-512.png', 'img/apple-touch-icon.png'
@@ -31,6 +31,8 @@ self.addEventListener('fetch', function (e) {
     return;
   }
   if (url.origin !== location.origin) return;
+  // pagine di servizio dell'accesso Google (/__/auth/...): mai intercettate né salvate
+  if (url.pathname.indexOf('/__/') === 0) return;
   // file dell'app: rete prima (così gli aggiornamenti arrivano), cache se offline
   e.respondWith(fetch(req).then(function (res) {
     if (res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
