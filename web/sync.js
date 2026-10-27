@@ -3,7 +3,9 @@
 (function () {
   'use strict';
 
-  var $ = function (id) { return document.getElementById(id); };
+  // se un elemento manca (pagina vecchia in cache) si usa un segnaposto, così l'app non si blocca
+  var dummy = document.createElement('div');
+  var $ = function (id) { return document.getElementById(id) || dummy; };
   var cfg = window.TAURI_CONFIG || {};
   var ADMIN = (cfg.adminEmail || '').toLowerCase();
   var KEY_ARCH = 'tauri.archivio.v1';
