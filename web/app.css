@@ -214,3 +214,4 @@ body:not(.in-editor) { padding-bottom: 24px; }
 .riga-cs { font-family: 'Saira Stencil One', Impact, sans-serif; font-weight: 400; font-size: 22px; color: var(--accent); letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .riga-num { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--muted); letter-spacing: 0.04em; }
 .riga-freccia { flex: none; color: var(--muted); display: flex; }
+.versione { text-align: center; color: var(--muted); font-size: 13px; letter-spacing: 0.08em; margin: 4px 0 0; }

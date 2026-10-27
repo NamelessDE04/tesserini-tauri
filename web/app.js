@@ -5,6 +5,7 @@
   var KEY_DRAFT = 'tauri.bozza.v1';
   var KEY_ARCH = 'tauri.archivio.v1';
   var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
+  var VERSIONE = '1.21'; // aggiornare insieme a CACHE in sw.js
 
   var FIELDS = ['cognome', 'nome', 'callsign', 'nascita', 'unita', 'numero', 'rilascio', 'sangue', 'tier', 'tema'];
   var state = defaults();
@@ -461,6 +462,7 @@
   window.TauriApp = { toast: toast, lsGet: lsGet, lsSet: lsSet, KEY_ARCH: KEY_ARCH, android: ANDROID };
 
   // ---------- avvio: si parte dall'archivio
+  $('versione').textContent = 'Tesserini Tauri · versione ' + VERSIONE;
   try { localStorage.removeItem(KEY_DRAFT); localStorage.removeItem('tauri.modificato.v1'); } catch (e) {}
   state = defaults();
   fillForm();
