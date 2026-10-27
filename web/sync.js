@@ -143,6 +143,11 @@
     showGate('carico');
   })();
 
+  // esito di un eventuale accesso con reindirizzamento (iPhone, popup bloccati)
+  auth.getRedirectResult().catch(function (e) {
+    if (e && e.code) loginError('Accesso non riuscito [' + e.code + ']: ' + (e.message || ''));
+  });
+
   auth.onAuthStateChanged(function (user) {
     stopAll();
     me = user;

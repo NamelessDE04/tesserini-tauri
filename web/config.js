@@ -6,7 +6,8 @@ window.TAURI_CONFIG = {
   webClientId: '1092148468310-ppu9vpijnc72rp74v4l2o5j0vv52801o.apps.googleusercontent.com',
   firebase: {
     apiKey: 'AIzaSyCxa3trvi-E-VghBncEl7QkikxGSSGYBvc',
-    authDomain: 'tesserini-tauri.firebaseapp.com',
+    // login sullo stesso indirizzo dell'app (necessario su iPhone); altrove passa da firebaseapp.com
+    authDomain: location.hostname === 'tesserini-tauri.web.app' ? 'tesserini-tauri.web.app' : 'tesserini-tauri.firebaseapp.com',
     projectId: 'tesserini-tauri',
     storageBucket: 'tesserini-tauri.firebasestorage.app',
     messagingSenderId: '1092148468310',
