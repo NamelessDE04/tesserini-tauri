@@ -119,8 +119,8 @@
     { id: 'cqb', nome: 'CQB', icona: 'cqb', ink: '#3b2f63' },
     { id: 'medicina', nome: 'Medicina tattica', icona: 'croce', ink: '#9c1c3a' },
     { id: 'nbc', nome: 'Chimico/batteriologico', icona: 'nbc', ink: '#6b6a12' },
-    { id: 'meccanica', nome: 'Meccanica ASG', icona: 'chiave', ink: '#4a4f57' },
-    { id: 'corda', nome: 'Manovre su corda', icona: 'moschettone', ink: '#1f6b6b' }
+    { id: 'meccanica', nome: 'Meccanica ASG', icona: 'asg', ink: '#4a4f57' },
+    { id: 'corda', nome: 'Manovre su corda', icona: 'imbrago', ink: '#1f6b6b' }
   ];
   var INK_RISERVA = ['#1f4f8f', '#2d6a3e', '#8f4a12', '#a1221c', '#3b2f63', '#1c1c18'];
 
@@ -199,23 +199,37 @@
         }
         ctx.beginPath(); ctx.arc(0, 0, 0.07 * s, 0, Math.PI * 2); ctx.fill();
         break;
-      case 'chiave':
-        ctx.save(); ctx.rotate(-Math.PI / 4);
-        ctx.lineWidth = s * 0.12; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(0, 0.42 * s); ctx.lineTo(0, -0.12 * s); ctx.stroke();
-        ctx.lineWidth = s * 0.075;
-        ctx.beginPath(); ctx.arc(0, -0.26 * s, 0.17 * s, Math.PI * 0.35 + Math.PI / 2, Math.PI * 1.65 + Math.PI / 2); ctx.stroke();
-        ctx.restore();
-        break;
-      case 'moschettone':
-        ctx.save(); ctx.rotate(Math.PI / 7);
-        var mw = 0.22 * s, mh = 0.42 * s;
+      case 'asg':
+        // ingranaggio (meccanica) con la sagoma di un fucile softair davanti
+        var teeth = 8, ro = 0.42 * s, ri = 0.34 * s;
         ctx.beginPath();
-        ctx.moveTo(-mw, -mh + mw); ctx.arc(0, -mh + mw, mw, Math.PI, 0); ctx.lineTo(mw, mh - mw);
-        ctx.arc(0, mh - mw, mw, 0, Math.PI); ctx.closePath(); ctx.stroke();
-        ctx.lineWidth = s * 0.05;
-        ctx.beginPath(); ctx.moveTo(mw, -0.05 * s); ctx.lineTo(mw - 0.12 * s, 0.22 * s); ctx.stroke();
-        ctx.restore();
+        for (var g = 0; g < teeth * 2; g++) {
+          var a0 = g * Math.PI / teeth, rr = (g % 2 === 0) ? ro : ri;
+          ctx.lineTo(Math.cos(a0 - 0.18) * rr, Math.sin(a0 - 0.18) * rr);
+          ctx.lineTo(Math.cos(a0 + 0.18) * rr, Math.sin(a0 + 0.18) * rr);
+        }
+        ctx.closePath(); ctx.lineWidth = s * 0.06; ctx.stroke();
+        var fucile = [-0.5, -0.06, -0.3, -0.06, -0.28, -0.11, 0.18, -0.11, 0.18, -0.065, 0.4, -0.065, 0.4, -0.08, 0.52, -0.08,
+          0.52, -0.045, 0.4, -0.045, 0.18, -0.02, 0.18, 0.0, 0.03, 0.0, 0.01, 0.17, -0.08, 0.16, -0.07, 0.0, -0.14, 0.0,
+          -0.18, 0.15, -0.25, 0.14, -0.22, 0.0, -0.3, 0.02, -0.5, 0.09];
+        p(fucile); ctx.lineWidth = s * 0.07; ctx.strokeStyle = paper; ctx.stroke();
+        ctx.fillStyle = ink; ctx.fill();
+        break;
+      case 'imbrago':
+        // imbrago da arrampicata: cintura, anello di servizio e cosciali collegati
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.lineWidth = s * 0.1;
+        ctx.beginPath(); ctx.moveTo(-0.44 * s, -0.3 * s); ctx.quadraticCurveTo(0, 0.12 * s, 0.44 * s, -0.3 * s); ctx.stroke();
+        ctx.lineWidth = s * 0.065;
+        ctx.beginPath(); ctx.ellipse(-0.22 * s, 0.27 * s, 0.14 * s, 0.16 * s, 0.3, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0.22 * s, 0.27 * s, 0.14 * s, 0.16 * s, -0.3, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = s * 0.055;
+        ctx.beginPath(); ctx.arc(0, 0.02 * s, 0.07 * s, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-0.05 * s, 0.07 * s); ctx.lineTo(-0.13 * s, 0.14 * s);
+        ctx.moveTo(0.05 * s, 0.07 * s); ctx.lineTo(0.13 * s, 0.14 * s);
+        ctx.moveTo(-0.38 * s, -0.24 * s); ctx.lineTo(-0.34 * s, 0.18 * s);
+        ctx.moveTo(0.38 * s, -0.24 * s); ctx.lineTo(0.34 * s, 0.18 * s);
+        ctx.stroke();
         break;
       default:
         star(ctx, 0, 0, s / 12);
