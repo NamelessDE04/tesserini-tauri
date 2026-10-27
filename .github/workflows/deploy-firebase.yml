@@ -1,0 +1,27 @@
+name: Pubblica su Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chiave Firebase mancante
+        if: env.HAS_KEY != 'true'
+        run: echo "Aggiungi il segreto FIREBASE_SERVICE_ACCOUNT nelle impostazioni del repository per pubblicare su tesserini-tauri.web.app"
+
+      - name: Pubblica su tesserini-tauri.web.app
+        if: env.HAS_KEY == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: tesserini-tauri
+          channelId: live
