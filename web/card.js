@@ -120,7 +120,7 @@
     { id: 'medicina', nome: 'Medicina tattica', icona: 'croce', ink: '#9c1c3a' },
     { id: 'nbc', nome: 'Chimico/batteriologico', icona: 'nbc', ink: '#6b6a12' },
     { id: 'meccanica', nome: 'Meccanica ASG', icona: 'asg', ink: '#4a4f57' },
-    { id: 'corda', nome: 'Manovre su corda', icona: 'imbrago', ink: '#1f6b6b' }
+    { id: 'corda', nome: 'Manovre su corda', icona: 'corda', ink: '#1f6b6b' }
   ];
   var INK_RISERVA = ['#1f4f8f', '#2d6a3e', '#8f4a12', '#a1221c', '#3b2f63', '#1c1c18'];
 
@@ -215,21 +215,29 @@
         p(fucile); ctx.lineWidth = s * 0.07; ctx.strokeStyle = paper; ctx.stroke();
         ctx.fillStyle = ink; ctx.fill();
         break;
-      case 'imbrago':
-        // imbrago da arrampicata: cintura, anello di servizio e cosciali collegati
+      case 'corda':
+        // matassa di corda legata al centro, con moschettone in alto
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.lineWidth = s * 0.1;
-        ctx.beginPath(); ctx.moveTo(-0.44 * s, -0.3 * s); ctx.quadraticCurveTo(0, 0.12 * s, 0.44 * s, -0.3 * s); ctx.stroke();
-        ctx.lineWidth = s * 0.065;
-        ctx.beginPath(); ctx.ellipse(-0.22 * s, 0.27 * s, 0.14 * s, 0.16 * s, 0.3, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse(0.22 * s, 0.27 * s, 0.14 * s, 0.16 * s, -0.3, 0, Math.PI * 2); ctx.stroke();
-        ctx.lineWidth = s * 0.055;
-        ctx.beginPath(); ctx.arc(0, 0.02 * s, 0.07 * s, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(-0.05 * s, 0.07 * s); ctx.lineTo(-0.13 * s, 0.14 * s);
-        ctx.moveTo(0.05 * s, 0.07 * s); ctx.lineTo(0.13 * s, 0.14 * s);
-        ctx.moveTo(-0.38 * s, -0.24 * s); ctx.lineTo(-0.34 * s, 0.18 * s);
-        ctx.moveTo(0.38 * s, -0.24 * s); ctx.lineTo(0.34 * s, 0.18 * s);
-        ctx.stroke();
+        ctx.lineWidth = s * 0.07;
+        ctx.beginPath(); ctx.ellipse(-0.08 * s, 0.08 * s, 0.25 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(-0.08 * s, 0.1 * s, 0.12 * s, 0.29 * s, 0, 0, Math.PI * 2); ctx.stroke();
+        // legature al centro (con un piccolo stacco di sfondo per farle risaltare)
+        [-0.02, 0.12].forEach(function (yy) {
+          ctx.fillStyle = paper; ctx.fillRect(-0.4 * s, (yy - 0.07) * s, 0.64 * s, 0.14 * s);
+          ctx.fillStyle = ink;
+          var x0 = -0.37 * s, w0 = 0.58 * s, h0 = 0.08 * s, y0 = (yy - 0.04) * s, rr = h0 / 2;
+          ctx.beginPath(); ctx.moveTo(x0 + rr, y0); ctx.lineTo(x0 + w0 - rr, y0); ctx.arc(x0 + w0 - rr, y0 + rr, rr, -Math.PI / 2, Math.PI / 2);
+          ctx.lineTo(x0 + rr, y0 + h0); ctx.arc(x0 + rr, y0 + rr, rr, Math.PI / 2, Math.PI * 1.5); ctx.fill();
+        });
+        // moschettone
+        ctx.save(); ctx.translate(0.28 * s, -0.3 * s); ctx.rotate(0.15);
+        var cw2 = 0.09 * s, ch2 = 0.17 * s;
+        ctx.lineWidth = s * 0.06;
+        ctx.beginPath(); ctx.moveTo(-cw2, -ch2 + cw2); ctx.arc(0, -ch2 + cw2, cw2, Math.PI, 0); ctx.lineTo(cw2, ch2 - cw2);
+        ctx.arc(0, ch2 - cw2, cw2, 0, Math.PI); ctx.closePath(); ctx.stroke();
+        ctx.restore();
+        ctx.lineWidth = s * 0.06;
+        ctx.beginPath(); ctx.moveTo(0.27 * s, -0.13 * s); ctx.quadraticCurveTo(0.18 * s, -0.12 * s, 0.1 * s, -0.22 * s); ctx.stroke();
         break;
       default:
         star(ctx, 0, 0, s / 12);
