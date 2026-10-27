@@ -73,6 +73,8 @@
       <label>Cognome <input type="text" id="cognome" autocomplete="off" autocapitalize="characters"></label>
       <label>Nome <input type="text" id="nome" autocomplete="off" autocapitalize="characters"></label>
       <label>Callsign <input type="text" id="callsign" autocomplete="off" autocapitalize="characters"></label>
+      <label>Data di nascita <input type="date" id="nascita"></label>
+      <label class="span2">Unità di appartenenza <input type="text" id="unita" autocomplete="off" autocapitalize="characters" placeholder="Es. Team Alpha – Squadra 1"></label>
       <label>N° tessera <input type="text" id="numero" autocomplete="off" autocapitalize="characters" placeholder="TS-0001"></label>
       <label>Data di rilascio <input type="date" id="rilascio"></label>
       <label>Gruppo sanguigno
@@ -84,9 +86,8 @@
           <option>AB Rh+</option><option>AB Rh−</option>
         </select>
       </label>
-      <label>Grado <select id="grado"></select></label>
       <label>Livello Tier
-        <select id="tier"><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option><option value="">Nessuno</option></select>
+        <select id="tier"><option value="">Nessuno</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select>
       </label>
       <label>Tema
         <select id="tema"><option value="notte">Notte</option><option value="oliva">Verde oliva</option><option value="deserto">Deserto</option></select>
@@ -102,7 +103,7 @@
 
   <section class="card">
     <h2>Contenuto del QR</h2>
-    <label class="check"><input type="checkbox" id="qrDati" checked> Includi nome, callsign e gruppo sanguigno</label>
+    <label class="check"><input type="checkbox" id="qrDati" checked> Includi nome, callsign, unità e gruppo sanguigno</label>
     <h3>Referenti / contatti</h3>
     <div id="referenti"></div>
     <button type="button" class="btn btn-ghost" id="addReferente">+ Aggiungi referente</button>
@@ -179,7 +180,9 @@
       <p>L'accesso per <b class="g-email"></b> non è stato approvato.</p>
       <button type="button" class="btn btn-ghost gate-btn g-esci">Usa un altro account</button>
     </div>
-    <div data-g="errore"></div>
+    <div data-g="errore">
+      <button type="button" class="btn btn-ghost gate-btn g-esci">Esci e riprova</button>
+    </div>
     <p class="hint warn" id="gErr" role="alert"></p>
   </div>
 </div>

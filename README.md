@@ -1,7 +1,9 @@
 # Tesserini Tauri
 
-App Android per creare i tesserini di riconoscimento di ASD Tauri Softair.
+Web app per creare i tesserini di riconoscimento di ASD Tauri Softair (88 × 140 mm, fronte e retro con i brevetti).
 
-- L'interfaccia è in `app/src/main/assets/www` (stessa web app della versione PWA).
-- A ogni push su `main` GitHub Actions compila l'APK firmato: lo trovi in **Actions → ultima esecuzione → Artifacts → TesseriniTauri-apk**.
-- La chiave di firma è `app/tauri-release.jks`: non cambiarla, altrimenti gli aggiornamenti non si installano sopra la versione precedente.
+- Il codice è nella cartella `web/`.
+- A ogni modifica su `main` GitHub la pubblica in automatico su GitHub Pages:
+  https://namelessde04.github.io/tesserini-tauri/
+- Accesso con Google e archivio condiviso su Firebase (progetto `tesserini-tauri`).
+- Le regole di sicurezza del database sono in `firestore.rules` (da copiare in Firebase → Firestore → Regole).

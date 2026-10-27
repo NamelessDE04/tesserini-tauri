@@ -94,6 +94,11 @@
   }
 
   // ---- accesso
+  function showErrore(msg) {
+    showGate('errore');
+    $('gErr').textContent = msg;
+    Array.prototype.forEach.call(document.querySelectorAll('.g-esci-err'), function (el) { el.hidden = false; });
+  }
   function loginError(msg) {
     showGate('login');
     $('gErr').textContent = msg;
@@ -119,7 +124,8 @@
       if (e && e.code === 'auth/popup-blocked') return auth.signInWithRedirect(p);
       if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return loginError('Accesso annullato.');
       if (e && e.code === 'auth/unauthorized-domain') return loginError('Questo indirizzo non è ancora autorizzato in Firebase (Authentication → Impostazioni → Domini autorizzati).');
-      loginError('Accesso non riuscito: ' + (e && (e.message || e.code) || e));
+      if (e && e.code === 'auth/operation-not-allowed') return loginError('L\'accesso con Google non è attivo in Firebase (Authentication → Metodo di accesso → Google).');
+      loginError('Accesso non riuscito' + (e && e.code ? ' [' + e.code + ']' : '') + ': ' + (e && e.message || e));
     });
   }
   function logout() {
@@ -157,8 +163,15 @@
           richiestoIl: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
-    }).catch(function () { /* offline: si prosegue con la cache */ }).then(function () {
-      if (me !== user) return;
+    }).then(function () { return true; }, function (e) {
+      // offline: si prosegue con la cache; un rifiuto del server invece va mostrato
+      if (e && e.code === 'permission-denied') {
+        showErrore('Registrazione della richiesta rifiutata dal server (' + e.code + '). Controlla le regole di Firestore.');
+        return false;
+      }
+      return true;
+    }).then(function (ok) {
+      if (!ok || me !== user) return;
       unsubUser = ref.onSnapshot(function (s) {
         var d = s.data() || {};
         var stato = isAdmin ? 'approvato' : (d.stato || 'in_attesa');
@@ -176,8 +189,8 @@
           list = []; emit();
           showGate(stato === 'rifiutato' ? 'rifiutato' : 'attesa', user.email);
         }
-      }, function () {
-        showGate('attesa', user.email);
+      }, function (e) {
+        showErrore('Impossibile leggere lo stato dell\'account (' + (e && e.code || e) + ').');
       });
     });
   });

@@ -1,7 +1,2 @@
-.gradle/
-build/
-app/build/
-local.properties
-*.iml
 .idea/
-app/src/main/assets/www/
+.DS_Store

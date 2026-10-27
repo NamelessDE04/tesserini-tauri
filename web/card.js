@@ -14,23 +14,6 @@
     deserto: { bg: '#d8caa4', panel: '#cbbb91', ink: '#1c1c18', muted: '#4b4636', accent: '#3d3a2b', accentInk: '#ece6d6', line: '#ad9d74', wm: 0.06 }
   };
 
-  // gradi con categoria e tier corrispondente (tier modificabile dall'utente)
-  var GRADI = [
-    { nome: 'Soldato semplice', cat: 'Truppa', tier: '4' },
-    { nome: 'Caporale', cat: 'Truppa', tier: '4' },
-    { nome: 'Caporale maggiore', cat: 'Truppa', tier: '4' },
-    { nome: 'Sergente', cat: 'Sottufficiali', tier: '3' },
-    { nome: 'Maresciallo', cat: 'Sottufficiali', tier: '3' },
-    { nome: 'Luogotenente', cat: 'Sottufficiali', tier: '3' },
-    { nome: 'Sottotenente', cat: 'Ufficiali inferiori', tier: '2' },
-    { nome: 'Tenente', cat: 'Ufficiali inferiori', tier: '2' },
-    { nome: 'Capitano', cat: 'Ufficiali inferiori', tier: '2' },
-    { nome: 'Maggiore', cat: 'Ufficiali superiori', tier: '1' },
-    { nome: 'Tenente colonnello', cat: 'Ufficiali superiori', tier: '1' },
-    { nome: 'Colonnello', cat: 'Ufficiali superiori', tier: '1' },
-    { nome: 'Generale', cat: 'Generali', tier: '' }
-  ];
-
   var tintCache = {};
   function tinted(img, color) {
     var key = color + '|' + img.src.length;
@@ -98,39 +81,6 @@
       if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.closePath(); ctx.fill();
-  }
-
-  // insegna in un riquadro 40x40 (unità), posizionato in x,y con lato `size`
-  function insignia(ctx, grado, x, y, size, color) {
-    var k = size / 40;
-    ctx.save();
-    ctx.translate(x, y); ctx.scale(k, k);
-    ctx.strokeStyle = color; ctx.fillStyle = color;
-    ctx.lineWidth = 4; ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
-    function chev(yy) { ctx.beginPath(); ctx.moveTo(8, yy + 8); ctx.lineTo(20, yy); ctx.lineTo(32, yy + 8); ctx.stroke(); }
-    function bar(yy) { ctx.fillRect(8, yy, 24, 4); }
-    function band() { ctx.fillRect(5, 31, 30, 4); }
-    function greca() {
-      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(5, 35);
-      for (var gx = 5, up = true; gx < 35; gx += 3.75, up = !up) ctx.lineTo(gx + 3.75, up ? 27 : 35);
-      ctx.stroke();
-    }
-    switch (grado) {
-      case 'Soldato semplice': ctx.fillRect(12, 18, 16, 4); break;
-      case 'Caporale': chev(16); break;
-      case 'Caporale maggiore': chev(12); chev(21); break;
-      case 'Sergente': chev(8); chev(17); chev(26); break;
-      case 'Maresciallo': bar(14); bar(22); break;
-      case 'Luogotenente': star(ctx, 20, 10, 1.05); bar(21); bar(29); break;
-      case 'Sottotenente': star(ctx, 20, 20, 1.6); break;
-      case 'Tenente': star(ctx, 12, 20, 1.25); star(ctx, 28, 20, 1.25); break;
-      case 'Capitano': star(ctx, 9, 25, 1.05); star(ctx, 20, 13, 1.05); star(ctx, 31, 25, 1.05); break;
-      case 'Maggiore': star(ctx, 20, 16, 1.5); band(); break;
-      case 'Tenente colonnello': star(ctx, 12, 17, 1.2); star(ctx, 28, 17, 1.2); band(); break;
-      case 'Colonnello': star(ctx, 8, 20, 0.95); star(ctx, 20, 11, 0.95); star(ctx, 32, 20, 0.95); band(); break;
-      case 'Generale': star(ctx, 20, 13, 1.45); greca(); break;
-    }
-    ctx.restore();
   }
 
   function silhouette(ctx, x, y, w, h, color) {
@@ -323,7 +273,7 @@
   }
 
   /**
-   * FRONTE. d: { cognome, nome, callsign, numero, rilascio (AAAA-MM-GG), sangue, grado, tier, tema,
+   * FRONTE. d: { cognome, nome, callsign, numero, nascita, unita, rilascio (AAAA-MM-GG), sangue, tier, tema,
    *              photo, photoZoom, photoX, photoY, qrText }
    */
   function draw(canvas, d, assets, scale) {
@@ -343,7 +293,7 @@
     hazard(ctx, 0, H - 6, W, 6, t.accent, t.bg);
 
     // foto
-    var px = 16, py = 82, pw = 136, ph = 176;
+    var px = 16, py = 82, pw = 136, ph = 160;
     ctx.fillStyle = t.panel; ctx.fillRect(px, py, pw, ph);
     if (d.photo && d.photo.naturalWidth) {
       var iw = d.photo.naturalWidth, ih = d.photo.naturalHeight;
@@ -360,7 +310,7 @@
     ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
     brackets(ctx, px, py, pw, ph, t.accent);
 
-    // colonna destra: tessera n°, rilascio, gruppo sanguigno
+    // colonna destra: tessera n°, data di nascita, gruppo sanguigno
     var rx = 166, rw = W - 16 - rx;
     function small(label, value, y) {
       ctx.fillStyle = t.muted; font(ctx, '600', 8, F_COND);
@@ -370,51 +320,52 @@
       ctx.fillStyle = t.line; ctx.fillRect(rx, y + 35, rw, 1);
     }
     small('TESSERA N°', up(d.numero), 84);
-    small('DATA DI RILASCIO', fmtData(d.rilascio), 128);
+    small('DATA DI NASCITA', fmtData(d.nascita), 126);
 
-    var by = 180, bh = 78;
+    var by = 170, bh = 72;
     ctx.fillStyle = t.accent; ctx.fillRect(rx, by, rw, bh);
     ctx.fillStyle = t.accentInk; font(ctx, '700', 8.5, F_COND);
-    spaced(ctx, 'GRUPPO SANGUIGNO', rx + 10, by + 19, 1.3, 'left', rw - 20);
-    fitFont(ctx, d.sangue || '—', '700', 32, 12, F_MONO, rw - 20);
-    ctx.fillText(d.sangue || '—', rx + 10, by + 62);
+    spaced(ctx, 'GRUPPO SANGUIGNO', rx + 10, by + 18, 1.3, 'left', rw - 20);
+    fitFont(ctx, d.sangue || '—', '700', 30, 12, F_MONO, rw - 20);
+    ctx.fillText(d.sangue || '—', rx + 10, by + 57);
 
     // dati anagrafici
     var mx = 16, mw = W - 32;
-    function field(label, value, y) {
+    function field(label, value, y, size, color) {
       ctx.fillStyle = t.muted; font(ctx, '600', 8, F_COND);
       spaced(ctx, label, mx, y + 8, 1.6);
-      ctx.fillStyle = t.ink; font(ctx, '700', 22, F_COND);
-      spaced(ctx, value || '—', mx, y + 31, 0.6, 'left', mw);
-      ctx.fillStyle = t.line; ctx.fillRect(mx, y + 38, mw, 1);
+      ctx.fillStyle = color || t.ink; font(ctx, '700', size, F_COND);
+      spaced(ctx, value || '—', mx, y + 10 + size * 0.95, 0.6, 'left', mw);
+      ctx.fillStyle = t.line; ctx.fillRect(mx, y + 16 + size, mw, 1);
     }
-    field('COGNOME', up(d.cognome), 272);
-    field('NOME', up(d.nome), 318);
+    field('COGNOME', up(d.cognome), 252, 22);
+    field('NOME', up(d.nome), 296, 22);
     ctx.fillStyle = t.muted; font(ctx, '600', 8, F_COND);
-    spaced(ctx, 'CALLSIGN', mx, 372, 1.6);
+    spaced(ctx, 'CALLSIGN', mx, 348, 1.6);
     var cs = up(d.callsign) ? '“' + up(d.callsign) + '”' : '—';
-    ctx.fillStyle = t.accent; font(ctx, '400', 32, F_STENCIL);
-    spaced(ctx, cs, mx, 404, 1.2, 'left', mw);
+    ctx.fillStyle = t.accent; font(ctx, '400', 30, F_STENCIL);
+    spaced(ctx, cs, mx, 378, 1.2, 'left', mw);
+    field('UNITÀ DI APPARTENENZA', up(d.unita), 386, 16);
 
-    // grado, tier, QR
-    var ry = 416, rh = 101, bw = 92;
-    [0, 1].forEach(function (i) {
-      var bx = mx + i * (bw + 8);
-      ctx.fillStyle = t.panel; ctx.fillRect(bx, ry, bw, rh);
-      ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, ry + 0.5, bw - 1, rh - 1);
+    // tier, data di rilascio, QR
+    var ry = 426, rh = 91, tw = 92, dwid = 102;
+    [[mx, tw, 'LIVELLO'], [mx + tw + 8, dwid, 'DATA DI RILASCIO']].forEach(function (b) {
+      ctx.fillStyle = t.panel; ctx.fillRect(b[0], ry, b[1], rh);
+      ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(b[0] + 0.5, ry + 0.5, b[1] - 1, rh - 1);
       ctx.fillStyle = t.muted; font(ctx, '600', 7.5, F_COND);
-      spaced(ctx, i === 0 ? 'GRADO' : 'LIVELLO', bx + bw / 2, ry + 14, 1.5, 'center');
+      spaced(ctx, b[2], b[0] + b[1] / 2, ry + 14, 1.4, 'center', b[1] - 8);
     });
-    insignia(ctx, d.grado, mx + bw / 2 - 22, ry + 22, 44, t.accent);
+    var tx = mx + tw / 2;
+    ctx.fillStyle = t.accent; font(ctx, '400', 38, F_STENCIL);
+    ctx.textAlign = 'center'; ctx.fillText(d.tier ? 'T' + d.tier : '—', tx, ry + 62); ctx.textAlign = 'left';
     ctx.fillStyle = t.ink; font(ctx, '700', 9.5, F_COND);
-    spaced(ctx, up(d.grado), mx + bw / 2, ry + rh - 9, 1.1, 'center', bw - 10);
-    var tx = mx + bw + 8 + bw / 2;
-    ctx.fillStyle = t.accent; font(ctx, '400', 40, F_STENCIL);
-    ctx.textAlign = 'center'; ctx.fillText(d.tier ? 'T' + d.tier : '—', tx, ry + 68); ctx.textAlign = 'left';
-    ctx.fillStyle = t.ink; font(ctx, '700', 9.5, F_COND);
-    spaced(ctx, 'TIER', tx, ry + rh - 9, 1.1, 'center');
+    spaced(ctx, 'TIER', tx, ry + rh - 8, 1.1, 'center');
+    var dx = mx + tw + 8 + dwid / 2;
+    var ril = fmtData(d.rilascio) || '—';
+    ctx.fillStyle = t.accent; font(ctx, '700', 15, F_MONO);
+    spaced(ctx, ril, dx, ry + 55, 0.3, 'center', dwid - 10);
 
-    var qx = W - 16 - 101, qy = ry, qs = 101;
+    var qx = W - 16 - rh, qy = ry, qs = rh;
     ctx.fillStyle = '#ffffff'; ctx.fillRect(qx, qy, qs, qs);
     var qr = null;
     if (d.qrText && d.qrText.trim() && root.QR) { try { qr = root.QR.encode(d.qrText, 'M'); } catch (e) { qr = null; } }
@@ -478,5 +429,5 @@
     hazard(ctx, 0, H - 6, W, 6, t.accent, t.bg);
   }
 
-  root.TauriCard = { draw: draw, drawBack: drawBack, W: W, H: H, THEMES: THEMES, GRADI: GRADI, BREVETTI: BREVETTI };
+  root.TauriCard = { draw: draw, drawBack: drawBack, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI };
 })(window);

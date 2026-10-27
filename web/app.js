@@ -6,7 +6,7 @@
   var KEY_ARCH = 'tauri.archivio.v1';
   var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
 
-  var FIELDS = ['cognome', 'nome', 'callsign', 'numero', 'rilascio', 'sangue', 'grado', 'tier', 'tema', 'note'];
+  var FIELDS = ['cognome', 'nome', 'callsign', 'nascita', 'unita', 'numero', 'rilascio', 'sangue', 'tier', 'tema', 'note'];
   var state = defaults();
   var photoImg = null;
   var logo = new Image();
@@ -15,7 +15,7 @@
 
   function defaults() {
     return {
-      id: null, cognome: '', nome: '', callsign: '', numero: '', sangue: '', grado: 'Soldato semplice', tier: '4', tema: 'notte',
+      id: null, cognome: '', nome: '', callsign: '', nascita: '', unita: '', numero: '', sangue: '', tier: '', tema: 'notte',
       note: '', qrDati: true, referenti: [{ nome: '', ruolo: '', tel: '' }],
       photoData: null, photoZoom: 1, photoX: 0, photoY: 0,
       rilascio: oggi(), brevetti: {}
@@ -51,6 +51,7 @@
       if (nome || state.callsign.trim()) {
         L.push('Operatore: ' + nome + (state.callsign.trim() ? ' "' + state.callsign.trim().toUpperCase() + '"' : ''));
       }
+      if (state.unita.trim()) L.push('Unità: ' + state.unita.trim().toUpperCase());
       if (state.sangue) L.push('Gruppo sanguigno: ' + state.sangue);
     }
     var refs = state.referenti.filter(function (r) { return r.nome.trim() || r.tel.trim(); });
@@ -84,7 +85,7 @@
     return {
       cognome: state.cognome, nome: state.nome, callsign: state.callsign, numero: state.numero,
       rilascio: state.rilascio, brevetti: state.brevetti || {},
-      sangue: state.sangue, grado: state.grado, tier: state.tier, tema: state.tema,
+      nascita: state.nascita, unita: state.unita, sangue: state.sangue, tier: state.tier, tema: state.tema,
       photo: photoImg, photoZoom: state.photoZoom, photoX: state.photoX, photoY: state.photoY,
       qrText: txt === undefined ? qrText() : txt
     };
@@ -93,22 +94,6 @@
   function update() { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { raf = null; render(); }); saveDraft(); }
 
   // ---------- form binding
-  var gradoSel = $('grado');
-  var groups = {};
-  TauriCard.GRADI.forEach(function (g) {
-    if (!groups[g.cat]) {
-      groups[g.cat] = document.createElement('optgroup');
-      groups[g.cat].label = g.cat + (g.tier ? ' · Tier ' + g.tier : '');
-      gradoSel.appendChild(groups[g.cat]);
-    }
-    var o = document.createElement('option'); o.value = g.nome; o.textContent = g.nome; groups[g.cat].appendChild(o);
-  });
-  // cambiando grado si imposta il tier della sua categoria (poi resta modificabile)
-  gradoSel.addEventListener('change', function () {
-    var g = TauriCard.GRADI.find(function (x) { return x.nome === gradoSel.value; });
-    if (g) { state.tier = g.tier; $('tier').value = g.tier; update(); }
-  });
-
   FIELDS.forEach(function (f) {
     $(f).addEventListener('input', function (e) { state[f] = e.target.value; update(); });
   });
@@ -119,9 +104,6 @@
 
   function fillForm() {
     FIELDS.forEach(function (f) { $(f).value = state[f] || ''; });
-    if (state.grado === 'Soldato') state.grado = 'Soldato semplice';
-    if (!TauriCard.GRADI.some(function (g) { return g.nome === state.grado; })) state.grado = 'Soldato semplice';
-    $('grado').value = state.grado;
     $('tier').value = state.tier || '';
     $('qrDati').checked = !!state.qrDati;
     $('photoZoom').value = state.photoZoom; $('photoX').value = state.photoX; $('photoY').value = state.photoY;
@@ -241,7 +223,7 @@
       var r = cv.getBoundingClientRect();
       return { x: (ev.clientX - r.left) / r.width * TauriCard.W, y: (ev.clientY - r.top) / r.height * TauriCard.H };
     }
-    function inFoto(p) { return p.x >= 16 && p.x <= 152 && p.y >= 82 && p.y <= 258; }
+    function inFoto(p) { return p.x >= 16 && p.x <= 152 && p.y >= 82 && p.y <= 242; }
     // il tesserino lascia scorrere la pagina; solo toccando la foto (se c'è) si trascina la foto
     cv.addEventListener('touchstart', function (ev) {
       if (!photoImg || ev.touches.length !== 1) return;
@@ -258,8 +240,8 @@
       if (!drag) return;
       var p = toCard(ev);
       var iw = photoImg.naturalWidth, ih = photoImg.naturalHeight;
-      var z = Math.max(136 / iw, 176 / ih) * state.photoZoom;
-      var ox = (iw * z - 136) / 2, oy = (ih * z - 176) / 2;
+      var z = Math.max(136 / iw, 160 / ih) * state.photoZoom;
+      var ox = (iw * z - 136) / 2, oy = (ih * z - 160) / 2;
       var clamp = function (v) { return Math.max(-1, Math.min(1, v)); };
       if (ox > 0.5) state.photoX = clamp(drag.sx + (p.x - drag.x) / ox);
       if (oy > 0.5) state.photoY = clamp(drag.sy + (p.y - drag.y) / oy);
