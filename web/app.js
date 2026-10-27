@@ -11,7 +11,7 @@
   var photoImg = null;
   var logo = new Image();
   logo.src = 'img/logo.png';
-  logo.onload = render;
+  logo.onload = function () { ridisegna(); };
 
   function defaults() {
     return {
@@ -28,10 +28,29 @@
   // ---------- storage
   function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch (e) { return fb; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
-  var saveTimer = null;
+  // salvataggio automatico nell'archivio: parte poco dopo l'ultima modifica
+  var saveTimer = null, inAttesa = false;
+  function haContenuto() {
+    return !!(state.id || state.cognome.trim() || state.nome.trim() || state.callsign.trim() || state.numero.trim() || state.photoData);
+  }
   function saveDraft() {
+    if (!haContenuto()) return;
+    inAttesa = true; mostraStato();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () { lsSet(KEY_DRAFT, state); }, 300);
+    saveTimer = setTimeout(salvaOra, 1200);
+  }
+  function salvaOra() {
+    clearTimeout(saveTimer); saveTimer = null;
+    if (!inAttesa || !haContenuto()) return Promise.resolve();
+    if (!state.id) state.id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    var rec = JSON.parse(JSON.stringify(state));
+    delete rec.thumb;
+    rec.savedAt = Date.now();
+    inAttesa = false;
+    return window.TauriSync.save(rec).then(function () { mostraStato(); }, function (e) {
+      inAttesa = true; mostraStato();
+      toast('Salvataggio non riuscito: ' + (e && e.message || e));
+    });
   }
 
   // ---------- toast
@@ -59,19 +78,15 @@
   var raf = null;
   function update() { if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { raf = null; render(); }); segnaModificato(); saveDraft(); }
 
-  // ---------- stato del salvataggio (mostrato sotto l'anteprima e sul tasto Salva)
-  var KEY_DIRTY = 'tauri.modificato.v1';
-  var dirty = !!lsGet(KEY_DIRTY, false);
+  // ---------- stato del salvataggio (sotto l'anteprima)
   function mostraStato() {
-    var el = $('saveState'), bt = $('btnSalva');
+    var el = $('saveState');
     if (!el) return;
-    bt.classList.toggle('dirty', dirty);
-    if (dirty) { el.textContent = '● Modifiche non salvate: tocca Salva'; el.className = 'save-state dirty'; }
-    else if (state.id) { el.textContent = '✓ Salvato in archivio'; el.className = 'save-state ok'; }
-    else { el.textContent = 'Nuovo tesserino · non ancora in archivio'; el.className = 'save-state'; }
+    if (inAttesa) { el.textContent = 'Salvataggio…'; el.className = 'save-state'; }
+    else if (state.id) { el.textContent = '✓ Salvata in archivio'; el.className = 'save-state ok'; }
+    else { el.textContent = 'Nuova tessera: compila i dati, si salva da sola'; el.className = 'save-state'; }
   }
-  function segnaModificato() { if (!dirty) { dirty = true; lsSet(KEY_DIRTY, true); } mostraStato(); }
-  function segnaSalvato() { dirty = false; lsSet(KEY_DIRTY, false); mostraStato(); }
+  function segnaModificato() { mostraStato(); }
 
   // ---------- form binding
   FIELDS.forEach(function (f) {
@@ -353,82 +368,112 @@
     });
   });
 
-  // ---------- archivio (condiviso tramite TauriSync: Firebase, o locale se non configurato)
-  function thumb() {
-    var c = document.createElement('canvas');
-    TauriCard.draw(c, cardData(), { logo: logo }, 0.4);
-    return c.toDataURL('image/jpeg', 0.7);
-  }
+  // ---------- archivio a tutto schermo (pagina iniziale) ed editor della tessera
   var archivio = [];
+  var fotoCache = {};
+  function nomeTessera(r) { return ((r.cognome || '') + ' ' + (r.nome || '')).trim().toUpperCase() || 'Senza nome'; }
   window.TauriSync.onArchive(function (list) {
-    archivio = list.slice().sort(function (x, y) { return (y.savedAt || 0) - (x.savedAt || 0); });
-    if ($('dlgArchivio').open) drawArchivio();
-  });
-  $('btnSalva').onclick = busy($('btnSalva'), function () {
-    if (!state.id) state.id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    var rec = JSON.parse(JSON.stringify(state));
-    rec.thumb = thumb(); rec.savedAt = Date.now();
-    saveDraft();
-    return window.TauriSync.save(rec).then(function (where) {
-      segnaSalvato();
-      toast(where === 'cloud' ? 'Salvato nell\'archivio condiviso' : 'Salvato in archivio');
+    archivio = list.slice().sort(function (x, y) {
+      return nomeTessera(x).localeCompare(nomeTessera(y), 'it') || (y.savedAt || 0) - (x.savedAt || 0);
     });
+    if (!$('viewArchivio').hidden) disegnaArchivio();
   });
-  $('btnNuovo').onclick = function () {
-    if (dirty && !confirm('Il tesserino aperto ha modifiche non salvate. Iniziarne uno nuovo comunque?')) return;
-    state = defaults(); photoImg = null; fillForm(); render(); saveDraft(); segnaSalvato();
-    if ($('dlgArchivio').open) $('dlgArchivio').close();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    toast('Nuovo tesserino');
-  };
-  function drawArchivio() {
-    var ul = $('listaArchivio');
-    ul.innerHTML = '';
+  function miniatura(rec, cv) {
+    var d = Object.assign({}, rec, { photo: null });
+    TauriCard.draw(cv, d, { logo: logo }, 0.62);
+    if (!rec.photoData) return;
+    var key = rec.id + ':' + rec.photoData.length;
+    function disegna(img) { d.photo = img; TauriCard.draw(cv, d, { logo: logo }, 0.62); }
+    if (fotoCache[key] && fotoCache[key].complete) return disegna(fotoCache[key]);
+    var img = new Image();
+    img.onload = function () { fotoCache[key] = img; disegna(img); };
+    img.src = rec.photoData;
+  }
+  function disegnaArchivio() {
+    var q = ($('cerca').value || '').trim().toLowerCase();
+    var lista = archivio.filter(function (r) {
+      if (!q) return true;
+      return [r.cognome, r.nome, r.callsign, r.unita, r.numero].join(' ').toLowerCase().indexOf(q) >= 0;
+    });
+    $('conteggio').textContent = archivio.length === 1 ? '1 tessera' : archivio.length + ' tessere';
+    var g = $('griglia'); g.innerHTML = '';
     $('archivioVuoto').hidden = archivio.length > 0;
-    archivio.forEach(function (rec) {
-      var li = document.createElement('li');
-      var img = document.createElement('img'); img.src = rec.thumb || ''; img.alt = '';
-      var who = document.createElement('div'); who.className = 'who';
-      var b = document.createElement('b'); b.textContent = ((rec.cognome || '') + ' ' + (rec.nome || '')).trim().toUpperCase() || 'Senza nome';
-      var s = document.createElement('span'); s.textContent = (rec.callsign ? '"' + rec.callsign.toUpperCase() + '" · ' : '') + (rec.numero || '');
-      who.appendChild(b); who.appendChild(s);
-      var open = document.createElement('button'); open.type = 'button'; open.className = 'btn'; open.textContent = 'Apri';
-      open.onclick = function () {
-        var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt; delete r.by;
-        if (dirty && !confirm('Il tesserino aperto ha modifiche non salvate. Aprire comunque questo?')) return;
-        state = Object.assign(defaults(), r); fillForm(); render(); saveDraft(); segnaSalvato(); $('dlgArchivio').close();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        toast('Caricato: ' + b.textContent);
-      };
-      var del = document.createElement('button'); del.type = 'button'; del.className = 'icon-btn'; del.setAttribute('aria-label', 'Elimina ' + b.textContent);
-      del.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
-      del.style.color = 'var(--danger)';
-      del.onclick = function () {
-        if (!confirm('Eliminare il tesserino di ' + b.textContent + ' per tutti?')) return;
-        window.TauriSync.remove(rec.id).catch(function (e) { toast('Errore: ' + (e && e.message || e)); });
-      };
-      li.appendChild(img); li.appendChild(who); li.appendChild(open); li.appendChild(del);
-      ul.appendChild(li);
+    $('nessunRisultato').hidden = !(archivio.length > 0 && lista.length === 0);
+    lista.forEach(function (rec) {
+      var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'tessera';
+      bt.setAttribute('aria-label', 'Apri la tessera di ' + nomeTessera(rec));
+      var cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true');
+      var nm = document.createElement('b'); nm.textContent = nomeTessera(rec);
+      var sb = document.createElement('small');
+      sb.textContent = [rec.callsign ? '“' + rec.callsign.toUpperCase() + '”' : '', rec.unita || ''].filter(Boolean).join(' · ') || ' ';
+      bt.appendChild(cv); bt.appendChild(nm); bt.appendChild(sb);
+      bt.onclick = function () { apriEditor(rec); };
+      g.appendChild(bt);
+      miniatura(rec, cv);
     });
   }
-  function openArchivio() {
-    drawArchivio();
-    if (!$('dlgArchivio').open) $('dlgArchivio').showModal();
+  $('cerca').addEventListener('input', disegnaArchivio);
+
+  function mostraVista(editor) {
+    $('viewArchivio').hidden = editor;
+    $('viewEditor').hidden = !editor;
+    $('barraEditor').hidden = !editor;
+    $('btnTornaArchivio').hidden = !editor;
+    document.body.classList.toggle('in-editor', editor);
+    window.scrollTo(0, 0);
   }
-  $('btnArchivio').onclick = openArchivio;
-  $('dlgChiudi').onclick = function () { $('dlgArchivio').close(); };
+  function apriEditor(rec) {
+    if (rec) {
+      var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt; delete r.by;
+      state = Object.assign(defaults(), r);
+    } else {
+      state = defaults();
+    }
+    photoImg = null; inAttesa = false;
+    fillForm();
+    mostraVista(true);
+    render(); mostraStato();
+    $('btnElimina').hidden = !state.id;
+    try { history.pushState({ editor: true }, ''); } catch (e) {}
+  }
+  function tornaArchivio(daHistory) {
+    var p = inAttesa ? salvaOra() : Promise.resolve();
+    mostraVista(false);
+    disegnaArchivio();
+    if (!daHistory) { try { if (history.state && history.state.editor) history.back(); } catch (e) {} }
+    return p;
+  }
+  window.addEventListener('popstate', function () { if (!$('viewEditor').hidden) tornaArchivio(true); });
+  $('btnNuova').onclick = function () { apriEditor(null); };
+  $('btnTornaArchivio').onclick = function () { tornaArchivio(false); };
+  $('btnElimina').onclick = function () {
+    if (!state.id) return;
+    var nome = nomeTessera(state);
+    if (!confirm('Eliminare la tessera di ' + nome + ' per tutti?')) return;
+    var id = state.id;
+    clearTimeout(saveTimer); inAttesa = false;
+    window.TauriSync.remove(id).then(function () { toast('Tessera eliminata'); }, function (e) { toast('Errore: ' + (e && e.message || e)); });
+    state = defaults();
+    tornaArchivio(false);
+  };
+  // uscendo dall'app con un salvataggio in sospeso, lo si completa subito
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && inAttesa) salvaOra(); });
+  window.addEventListener('beforeunload', function () { if (inAttesa) salvaOra(); });
   window.TauriApp = { toast: toast, lsGet: lsGet, lsSet: lsSet, KEY_ARCH: KEY_ARCH, android: ANDROID };
 
-  // ---------- avvio
-  state = Object.assign(defaults(), lsGet(KEY_DRAFT, {}));
+  // ---------- avvio: si parte dall'archivio
+  try { localStorage.removeItem(KEY_DRAFT); localStorage.removeItem('tauri.modificato.v1'); } catch (e) {}
+  state = defaults();
   fillForm();
-  render();
+  mostraVista(false);
+  disegnaArchivio();
   if (document.fonts) {
     ['400 20px "Saira Stencil One"', '700 20px "Barlow Condensed"', '600 20px "Barlow Condensed"', '700 20px "JetBrains Mono"']
-      .forEach(function (f) { document.fonts.load(f).then(render, function () {}); });
-    document.fonts.ready.then(render);
+      .forEach(function (f) { document.fonts.load(f).then(ridisegna, function () {}); });
+    document.fonts.ready.then(ridisegna);
   }
-  window.addEventListener('resize', function () { render(); });
+  function ridisegna() { if ($('viewEditor').hidden) disegnaArchivio(); else render(); }
+  window.addEventListener('resize', ridisegna);
   mostraStato();
 
   // ---------- menu "Stampa e invia"
@@ -438,7 +483,7 @@
     $(id).addEventListener('click', function () { $('dlgEsporta').close(); });
   });
   // tocco fuori dal pannello = chiudi
-  ['dlgEsporta', 'dlgArchivio'].forEach(function (id) {
+  ['dlgEsporta'].forEach(function (id) {
     $(id).addEventListener('click', function (e) { if (e.target === $(id)) $(id).close(); });
   });
 

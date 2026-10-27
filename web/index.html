@@ -28,9 +28,32 @@
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M17 8v6M14 11h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <span class="badge" id="richiesteBadge" hidden>0</span>
   </button>
+  <button type="button" class="top-back" id="btnTornaArchivio" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Archivio</span></button>
 </header>
 
-<main>
+<section class="archivio-view" id="viewArchivio">
+  <div class="arch-head">
+    <div>
+      <h2>Archivio tessere</h2>
+      <p class="hint" id="conteggio"></p>
+    </div>
+    <button type="button" class="btn btn-accent" id="btnNuova"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4"/></svg> Nuova tessera</button>
+  </div>
+  <label class="cerca"><span class="sr">Cerca</span>
+    <input type="search" id="cerca" placeholder="Cerca per nome, callsign, unità…" autocomplete="off">
+  </label>
+  <div class="griglia" id="griglia"></div>
+  <p class="vuoto" id="archivioVuoto" hidden>Nessuna tessera ancora.<br>Tocca <b>Nuova tessera</b> per crearne una.</p>
+  <p class="vuoto" id="nessunRisultato" hidden>Nessuna tessera corrisponde alla ricerca.</p>
+  <section class="card account-card" id="accountCard" hidden>
+    <div class="account" id="accountBox">
+      <span>Connesso come <b id="accountEmail"></b></span>
+      <button type="button" class="link-btn" id="btnEsci">Esci</button>
+    </div>
+  </section>
+</section>
+
+<main id="viewEditor" hidden>
   <section class="preview-wrap">
     <canvas id="preview" aria-label="Anteprima del tesserino"></canvas>
     <p class="save-state" id="saveState" role="status"></p>
@@ -94,18 +117,11 @@
     <div id="brevettiList" class="brev-list"></div>
   </section>
 
-  <section class="card account-card" id="accountCard" hidden>
-    <div class="account" id="accountBox">
-      <span>Connesso come <b id="accountEmail"></b></span>
-      <button type="button" class="link-btn" id="btnEsci">Esci</button>
-    </div>
-  </section>
+  <button type="button" class="link-btn elimina-btn" id="btnElimina" hidden>Elimina questa tessera</button>
 </main>
 
-<nav class="actions" aria-label="Azioni">
-  <button type="button" class="tabbtn" id="btnArchivio"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Archivio</span></button>
-  <button type="button" class="tabbtn primary" id="btnSalva"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M5 3h11l3 3v15H5z M8 3v6h8V3 M8 21v-7h8v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Salva</span><i class="dot" aria-hidden="true"></i></button>
-  <button type="button" class="tabbtn" id="btnEsporta"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 9V3h10v6 M7 17H4v-8h16v8h-3 M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Stampa e invia</span></button>
+<nav class="actions" id="barraEditor" aria-label="Azioni" hidden>
+  <button type="button" class="tabbtn primary" id="btnEsporta"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 9V3h10v6 M7 17H4v-8h16v8h-3 M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Stampa e invia</span></button>
 </nav>
 
 <dialog id="dlgEsporta" class="sheet">
@@ -122,18 +138,6 @@
   </div>
 </dialog>
 
-<dialog id="dlgArchivio">
-  <div class="dlg-head">
-    <h2>Archivio tesserini</h2>
-    <button type="button" class="icon-btn" id="dlgChiudi" aria-label="Chiudi">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2"/></svg>
-    </button>
-  </div>
-  <button type="button" class="btn btn-accent nuovo-btn" id="btnNuovo"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4"/></svg> Nuovo tesserino</button>
-  <p class="hint">Tocca <b>Apri</b> per modificare un tesserino salvato.</p>
-  <ul id="listaArchivio"></ul>
-  <p class="hint" id="archivioVuoto">Nessun tesserino salvato.</p>
-</dialog>
 
 <dialog id="dlgRichieste">
   <div class="dlg-head">
