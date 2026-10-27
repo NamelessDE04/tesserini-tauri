@@ -17,7 +17,7 @@
     return {
       id: null, cognome: '', nome: '', callsign: '', nascita: '', unita: '', numero: '', sangue: '', tier: '', tema: 'notte',
       photoData: null, photoZoom: 1, photoX: 0, photoY: 0,
-      rilascio: oggi(), brevetti: {}
+      rilascio: oggi(), brevetti: {}, brevSync: false
     };
   }
   function oggi() {
@@ -77,13 +77,24 @@
 
   // ---------- brevetti (li assegnano l'amministratore e gli istruttori abilitati)
   function puoTimbrare() { return !window.TauriSync.enabled || window.TauriSync.canStamp(); }
+  // solo l'amministratore può legare le date dei brevetti alla data di rilascio
+  function puoSincronizzare() { return !window.TauriSync.enabled || window.TauriSync.isAdmin(); }
+  function syncAttivo() { return !!state.brevSync && puoSincronizzare(); }
+  function allineaDate() {
+    if (!syncAttivo() || !state.rilascio) return;
+    Object.keys(state.brevetti || {}).forEach(function (k) { state.brevetti[k] = state.rilascio; });
+  }
   function renderBrevetti() {
     var box = $('brevettiList'); box.innerHTML = '';
     var edit = puoTimbrare();
     if (!state.brevetti || typeof state.brevetti !== 'object') state.brevetti = {};
     $('brevettiHint').textContent = edit
-      ? 'Spunta il brevetto quando l\'esame è superato e indica la data: sul retro compare il timbro.'
+      ? 'Spunta il brevetto quando l\'esame è superato e indica la data: compare sul tesserino.'
       : 'I brevetti li assegnano solo l\'amministratore e gli istruttori abilitati, dopo l\'esame.';
+    var syncBox = $('brevSyncBox');
+    syncBox.hidden = !puoSincronizzare();
+    $('brevSync').checked = !!state.brevSync;
+    allineaDate();
     TauriCard.BREVETTI.forEach(function (b) {
       var row = document.createElement('div'); row.className = 'brev';
       var lab = document.createElement('label'); lab.className = 'check';
@@ -92,10 +103,11 @@
       dt.setAttribute('aria-label', 'Data esame ' + b.nome);
       cb.checked = !!state.brevetti[b.id];
       dt.value = state.brevetti[b.id] || '';
-      cb.disabled = dt.disabled = !edit;
+      cb.disabled = !edit;
+      dt.disabled = !edit || syncAttivo();
       dt.hidden = !cb.checked;
       cb.onchange = function () {
-        if (cb.checked) { state.brevetti[b.id] = dt.value || oggi(); dt.value = state.brevetti[b.id]; }
+        if (cb.checked) { state.brevetti[b.id] = syncAttivo() && state.rilascio ? state.rilascio : (dt.value || oggi()); dt.value = state.brevetti[b.id]; }
         else delete state.brevetti[b.id];
         dt.hidden = !cb.checked; update();
       };
@@ -105,6 +117,14 @@
     });
   }
   window.addEventListener('tauri-role', function () { renderBrevetti(); });
+  $('brevSync').addEventListener('change', function (e) {
+    state.brevSync = e.target.checked;
+    renderBrevetti(); update();
+  });
+  // cambiando la data di rilascio, se il collegamento è attivo, si aggiornano anche i brevetti
+  $('rilascio').addEventListener('input', function () {
+    if (syncAttivo()) { allineaDate(); renderBrevetti(); update(); }
+  });
 
   // ---------- foto
   function loadPhoto(dataUrl) {
