@@ -370,25 +370,14 @@
 
   // ---------- archivio a tutto schermo (pagina iniziale) ed editor della tessera
   var archivio = [];
-  var fotoCache = {};
   function nomeTessera(r) { return ((r.cognome || '') + ' ' + (r.nome || '')).trim().toUpperCase() || 'Senza nome'; }
   window.TauriSync.onArchive(function (list) {
+    var chiave = function (r) { return ((r.callsign || '') + ' ' + nomeTessera(r)).trim().toUpperCase(); };
     archivio = list.slice().sort(function (x, y) {
-      return nomeTessera(x).localeCompare(nomeTessera(y), 'it') || (y.savedAt || 0) - (x.savedAt || 0);
+      return chiave(x).localeCompare(chiave(y), 'it') || (y.savedAt || 0) - (x.savedAt || 0);
     });
     if (!$('viewArchivio').hidden) disegnaArchivio();
   });
-  function miniatura(rec, cv) {
-    var d = Object.assign({}, rec, { photo: null });
-    TauriCard.draw(cv, d, { logo: logo }, 0.62);
-    if (!rec.photoData) return;
-    var key = rec.id + ':' + rec.photoData.length;
-    function disegna(img) { d.photo = img; TauriCard.draw(cv, d, { logo: logo }, 0.62); }
-    if (fotoCache[key] && fotoCache[key].complete) return disegna(fotoCache[key]);
-    var img = new Image();
-    img.onload = function () { fotoCache[key] = img; disegna(img); };
-    img.src = rec.photoData;
-  }
   function disegnaArchivio() {
     var q = ($('cerca').value || '').trim().toLowerCase();
     var lista = archivio.filter(function (r) {
@@ -400,16 +389,26 @@
     $('archivioVuoto').hidden = archivio.length > 0;
     $('nessunRisultato').hidden = !(archivio.length > 0 && lista.length === 0);
     lista.forEach(function (rec) {
-      var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'tessera';
-      bt.setAttribute('aria-label', 'Apri la tessera di ' + nomeTessera(rec));
-      var cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true');
-      var nm = document.createElement('b'); nm.textContent = nomeTessera(rec);
-      var sb = document.createElement('small');
-      sb.textContent = [rec.callsign ? '“' + rec.callsign.toUpperCase() + '”' : '', rec.unita || ''].filter(Boolean).join(' · ') || ' ';
-      bt.appendChild(cv); bt.appendChild(nm); bt.appendChild(sb);
+      var bt = document.createElement('button'); bt.type = 'button'; bt.className = 'riga';
+      var cs = (rec.callsign || '').trim().toUpperCase();
+      bt.setAttribute('aria-label', 'Apri la tessera ' + (cs || nomeTessera(rec)));
+      var foto = document.createElement('span'); foto.className = 'riga-foto';
+      if (rec.photoData) {
+        var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; img.src = rec.photoData;
+        img.style.objectPosition = (50 + (rec.photoX || 0) * 50) + '% ' + (50 + (rec.photoY || 0) * 50) + '%';
+        foto.appendChild(img);
+      } else {
+        foto.innerHTML = '<svg viewBox="0 0 40 48" aria-hidden="true"><circle cx="20" cy="17" r="8" fill="currentColor"/><path d="M4 48c1-11 7-16 16-16s15 5 16 16z" fill="currentColor"/></svg>';
+      }
+      var txt = document.createElement('span'); txt.className = 'riga-txt';
+      var c = document.createElement('b'); c.className = 'riga-cs'; c.textContent = cs ? '“' + cs + '”' : nomeTessera(rec);
+      var n = document.createElement('small'); n.className = 'riga-num'; n.textContent = 'N° ' + ((rec.numero || '').trim().toUpperCase() || '—');
+      txt.appendChild(c); txt.appendChild(n);
+      var fr = document.createElement('span'); fr.className = 'riga-freccia'; fr.setAttribute('aria-hidden', 'true');
+      fr.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>';
+      bt.appendChild(foto); bt.appendChild(txt); bt.appendChild(fr);
       bt.onclick = function () { apriEditor(rec); };
       g.appendChild(bt);
-      miniatura(rec, cv);
     });
   }
   $('cerca').addEventListener('input', disegnaArchivio);
