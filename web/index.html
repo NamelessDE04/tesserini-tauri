@@ -35,13 +35,7 @@
 
 <main>
   <section class="preview-wrap">
-    <div class="tabs" role="group" aria-label="Lato del tesserino">
-      <button type="button" class="tab" id="tabFronte" aria-pressed="true">Fronte</button>
-      <button type="button" class="tab" id="tabRetro" aria-pressed="false">Retro · brevetti</button>
-    </div>
-    <canvas id="preview" aria-label="Anteprima fronte del tesserino"></canvas>
-    <canvas id="previewBack" aria-label="Anteprima retro con i brevetti" hidden></canvas>
-    <p class="hint" id="qrInfo"></p>
+    <canvas id="preview" aria-label="Anteprima del tesserino"></canvas>
   </section>
 
   <section class="card">
@@ -87,7 +81,7 @@
         </select>
       </label>
       <label>Livello Tier
-        <select id="tier"><option value="">Nessuno</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select>
+        <select id="tier"><option value="">Nessuno</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option><option value="5">Tier 5</option><option value="6">Tier 6</option><option value="7">Tier 7</option><option value="8">Tier 8</option><option value="9">Tier 9</option><option value="10">Tier 10</option></select>
       </label>
       <label>Tema
         <select id="tema"><option value="notte">Notte</option><option value="oliva">Verde oliva</option><option value="deserto">Deserto</option></select>
@@ -99,21 +93,6 @@
     <h2>Brevetti</h2>
     <p class="hint" id="brevettiHint"></p>
     <div id="brevettiList" class="brev-list"></div>
-  </section>
-
-  <section class="card">
-    <h2>Contenuto del QR</h2>
-    <label class="check"><input type="checkbox" id="qrDati" checked> Includi nome, callsign, unità e gruppo sanguigno</label>
-    <h3>Referenti / contatti</h3>
-    <div id="referenti"></div>
-    <button type="button" class="btn btn-ghost" id="addReferente">+ Aggiungi referente</button>
-    <label class="full">Note (facoltative)
-      <textarea id="note" rows="2" placeholder="Es. allergie, indicazioni per i soccorsi"></textarea>
-    </label>
-    <details>
-      <summary>Testo che verrà messo nel QR</summary>
-      <pre id="qrPreview"></pre>
-    </details>
   </section>
 
   <section class="card">
@@ -189,23 +168,12 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<template id="tplReferente">
-  <div class="ref">
-    <input type="text" class="r-nome" placeholder="Nome referente" autocomplete="off">
-    <input type="text" class="r-ruolo" placeholder="Ruolo (es. moglie, capo squadra)" autocomplete="off">
-    <input type="tel" class="r-tel" placeholder="Telefono" autocomplete="off">
-    <button type="button" class="icon-btn r-del" aria-label="Rimuovi referente">
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
-</template>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="config.js"></script>
 <script src="sync.js"></script>
-<script src="qr.js"></script>
 <script src="card.js"></script>
 <script src="app.js"></script>
 </body>

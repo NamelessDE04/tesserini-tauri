@@ -1,5 +1,5 @@
 /* Disegno del tesserino Tauri su canvas.
-   Coordinate di progetto: 333 x 529 (= 88 x 140 mm, verticale). L'export scala a 300 dpi. */
+   Coordinate di progetto: 333 x 529 (= 88 x 140 mm, verticale, un solo lato). L'export scala a 300 dpi. */
 (function (root) {
   'use strict';
 
@@ -119,7 +119,6 @@
     { id: 'cqb', nome: 'CQB', icona: 'cqb', ink: '#3b2f63' }
   ];
   var INK_RISERVA = ['#1f4f8f', '#2d6a3e', '#8f4a12', '#a1221c', '#3b2f63', '#1c1c18'];
-  var PAPER = { notte: '#e7e0cc', oliva: '#e4e1c9', deserto: '#efe6cb' };
 
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { return function () { seed = (seed + 0x6D2B79F5) | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -128,23 +127,6 @@
     if (!iso) return '';
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
     return m ? m[3] + '.' + m[2] + '.' + m[1] : iso;
-  }
-
-  // testo lungo un arco: in alto si legge da sinistra a destra, in basso pure (lettere dritte)
-  function arcText(ctx, text, r, top, maxAngle, spacing) {
-    var ws = [], tot = 0, i;
-    for (i = 0; i < text.length; i++) { ws.push(ctx.measureText(text[i]).width); tot += ws[i] + (i ? spacing : 0); }
-    var k = Math.min(1, maxAngle * r / tot);
-    var ang = tot * k / r, a = top ? -ang / 2 : ang / 2;
-    ctx.textAlign = 'center';
-    for (i = 0; i < text.length; i++) {
-      var step = (ws[i] * k) / r;
-      ctx.save();
-      if (top) { ctx.rotate(a + step / 2); ctx.scale(k, 1); ctx.fillText(text[i], 0, -r); a += step + spacing * k / r; }
-      else { ctx.rotate(a - step / 2); ctx.scale(k, 1); ctx.fillText(text[i], 0, r); a -= step + spacing * k / r; }
-      ctx.restore();
-    }
-    ctx.textAlign = 'left';
   }
 
   function icona(ctx, tipo, s, ink, paper) {
@@ -207,50 +189,23 @@
     ctx.restore();
   }
 
-  // timbro tondo stile "gomma": anello doppio, nome in alto, data in basso, icona al centro
-  function timbro(ctx, b, cx, cy, r, data, paper) {
-    var seed = hash(b.nome + (data || ''));
-    var R = rng(seed);
+  // distintivo del brevetto: tondo pieno col colore del corso se conseguito, tratteggiato se no
+  function distintivo(ctx, b, cx, cy, r, data, t) {
     var ink = b.ink || INK_RISERVA[hash(b.nome) % INK_RISERVA.length];
-    var rot = (R() - 0.5) * 0.42;
-    ctx.save();
-    ctx.translate(cx + (R() - 0.5) * 5, cy + (R() - 0.5) * 5);
-    ctx.rotate(rot);
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = ink; ctx.fillStyle = ink;
-    ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r - 1.5, 0, Math.PI * 2); ctx.stroke();
-    ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, r - 5, 0, Math.PI * 2); ctx.stroke();
-    ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, r - 23, 0, Math.PI * 2); ctx.stroke();
-    font(ctx, '700', 12, F_COND);
-    arcText(ctx, b.nome.toUpperCase(), r - 18, true, 2.5, 1.2);
-    font(ctx, '700', 9.5, F_MONO);
-    arcText(ctx, fmtData(data) || '', r - 10, false, 2.0, 0.6);
-    star(ctx, -(r - 14), 0, 0.42); star(ctx, r - 14, 0, 0.42);
-    icona(ctx, b.icona, (r - 23) * 1.15, ink, paper);
-    ctx.globalAlpha = 1;
-    // inchiostro irregolare: piccole mancanze sul timbro
-    ctx.fillStyle = paper;
-    for (var i = 0; i < 70; i++) {
-      var a = R() * Math.PI * 2, d = Math.sqrt(R()) * r, s = 0.25 + R() * 0.7;
-      ctx.globalAlpha = 0.35 + R() * 0.45;
-      ctx.beginPath(); ctx.arc(Math.cos(a) * d, Math.sin(a) * d, s, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  // spazio vuoto per un brevetto non ancora conseguito
-  function slotVuoto(ctx, b, cx, cy, r, color, paper) {
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.strokeStyle = color; ctx.fillStyle = color;
-    ctx.lineWidth = 1.2; ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.arc(0, 0, r - 3, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 0.55;
-    icona(ctx, b.icona, (r - 23) * 0.9, color, paper);
-    ctx.globalAlpha = 1;
-    font(ctx, '600', 10, F_COND);
-    arcText(ctx, b.nome.toUpperCase(), r - 14, true, 2.4, 1.2);
+    if (data) {
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = t.accent; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, r - 2.2, 0, Math.PI * 2); ctx.stroke();
+      icona(ctx, b.icona, r * 1.15, '#f4efe2', ink);
+    } else {
+      ctx.strokeStyle = t.line; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.arc(0, 0, r - 1, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.6;
+      icona(ctx, b.icona, r * 1.0, t.muted, t.bg);
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   }
 
@@ -273,10 +228,11 @@
   }
 
   /**
-   * FRONTE. d: { cognome, nome, callsign, numero, nascita, unita, rilascio (AAAA-MM-GG), sangue, tier, tema,
-   *              photo, photoZoom, photoX, photoY, qrText }
+   * Tesserino (un solo lato). d: { cognome, nome, callsign, nascita, unita, numero, rilascio (AAAA-MM-GG),
+   *   sangue, tier (1-10), tema, photo, photoZoom, photoX, photoY, brevetti: { <id>: 'AAAA-MM-GG' } }
+   * catalogo: elenco brevetti (fino a 10: 2 righe da 5).
    */
-  function draw(canvas, d, assets, scale) {
+  function draw(canvas, d, assets, scale, catalogo) {
     scale = scale || 1;
     canvas.width = Math.round(W * scale);
     canvas.height = Math.round(H * scale);
@@ -287,13 +243,13 @@
     var up = function (s) { return (s || '').toString().trim().toUpperCase(); };
 
     ctx.fillStyle = t.bg; ctx.fillRect(0, 0, W, H);
-    logoAt(ctx, assets, t.accent === '#3d3a2b' ? '#1c1c18' : '#c8b68a', 40, 190, 300, t.wm);
+    logoAt(ctx, assets, t.accent === '#3d3a2b' ? '#1c1c18' : '#c8b68a', 40, 150, 300, t.wm);
 
     header(ctx, t, assets, 'ASD TAURI SOFTAIR', 'TESSERA DI RICONOSCIMENTO');
     hazard(ctx, 0, H - 6, W, 6, t.accent, t.bg);
 
     // foto
-    var px = 16, py = 82, pw = 136, ph = 160;
+    var px = 16, py = 78, pw = 112, ph = 144;
     ctx.fillStyle = t.panel; ctx.fillRect(px, py, pw, ph);
     if (d.photo && d.photo.naturalWidth) {
       var iw = d.photo.naturalWidth, ih = d.photo.naturalHeight;
@@ -310,124 +266,80 @@
     ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
     brackets(ctx, px, py, pw, ph, t.accent);
 
-    // colonna destra: tessera n°, data di nascita, gruppo sanguigno
-    var rx = 166, rw = W - 16 - rx;
+    // colonna destra
+    var rx = 140, rw = W - 16 - rx;
     function small(label, value, y) {
-      ctx.fillStyle = t.muted; font(ctx, '600', 8, F_COND);
-      spaced(ctx, label, rx, y + 8, 1.6, 'left', rw);
-      ctx.fillStyle = t.accent; font(ctx, '700', 15, F_MONO);
-      spaced(ctx, value || '—', rx, y + 28, 0.6, 'left', rw);
-      ctx.fillStyle = t.line; ctx.fillRect(rx, y + 35, rw, 1);
+      ctx.fillStyle = t.muted; font(ctx, '600', 7.5, F_COND);
+      spaced(ctx, label, rx, y + 8, 1.5, 'left', rw);
+      ctx.fillStyle = t.accent; font(ctx, '700', 14, F_MONO);
+      spaced(ctx, value || '—', rx, y + 26, 0.5, 'left', rw);
+      ctx.fillStyle = t.line; ctx.fillRect(rx, y + 32, rw, 1);
     }
-    small('TESSERA N°', up(d.numero), 84);
-    small('DATA DI NASCITA', fmtData(d.nascita), 126);
+    small('TESSERA N°', up(d.numero), 78);
+    small('DATA DI NASCITA', fmtData(d.nascita), 114);
+    small('DATA DI RILASCIO', fmtData(d.rilascio), 150);
 
-    var by = 170, bh = 72;
-    ctx.fillStyle = t.accent; ctx.fillRect(rx, by, rw, bh);
-    ctx.fillStyle = t.accentInk; font(ctx, '700', 8.5, F_COND);
-    spaced(ctx, 'GRUPPO SANGUIGNO', rx + 10, by + 18, 1.3, 'left', rw - 20);
-    fitFont(ctx, d.sangue || '—', '700', 30, 12, F_MONO, rw - 20);
-    ctx.fillText(d.sangue || '—', rx + 10, by + 57);
+    var by = 189, bh = 33, sw = 106, tw2 = rw - sw - 7;
+    ctx.fillStyle = t.accent; ctx.fillRect(rx, by, sw, bh);
+    ctx.fillStyle = t.accentInk; font(ctx, '700', 7, F_COND);
+    spaced(ctx, 'GRUPPO SANG.', rx + 6, by + 10, 1, 'left', sw - 12);
+    fitFont(ctx, d.sangue || '—', '700', 16, 9, F_MONO, sw - 12);
+    ctx.fillText(d.sangue || '—', rx + 6, by + 28);
+    var tbx = rx + sw + 7;
+    ctx.fillStyle = t.panel; ctx.fillRect(tbx, by, tw2, bh);
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(tbx + 0.5, by + 0.5, tw2 - 1, bh - 1);
+    ctx.fillStyle = t.muted; font(ctx, '600', 7, F_COND);
+    spaced(ctx, 'TIER', tbx + tw2 / 2, by + 10, 1.2, 'center');
+    ctx.fillStyle = t.accent; font(ctx, '400', 17, F_STENCIL);
+    ctx.textAlign = 'center'; ctx.fillText(d.tier ? 'T' + d.tier : '—', tbx + tw2 / 2, by + 29); ctx.textAlign = 'left';
 
     // dati anagrafici
     var mx = 16, mw = W - 32;
     function field(label, value, y, size, color) {
-      ctx.fillStyle = t.muted; font(ctx, '600', 8, F_COND);
-      spaced(ctx, label, mx, y + 8, 1.6);
-      ctx.fillStyle = color || t.ink; font(ctx, '700', size, F_COND);
-      spaced(ctx, value || '—', mx, y + 10 + size * 0.95, 0.6, 'left', mw);
-      ctx.fillStyle = t.line; ctx.fillRect(mx, y + 16 + size, mw, 1);
-    }
-    field('COGNOME', up(d.cognome), 252, 22);
-    field('NOME', up(d.nome), 296, 22);
-    ctx.fillStyle = t.muted; font(ctx, '600', 8, F_COND);
-    spaced(ctx, 'CALLSIGN', mx, 348, 1.6);
-    var cs = up(d.callsign) ? '“' + up(d.callsign) + '”' : '—';
-    ctx.fillStyle = t.accent; font(ctx, '400', 30, F_STENCIL);
-    spaced(ctx, cs, mx, 378, 1.2, 'left', mw);
-    field('UNITÀ DI APPARTENENZA', up(d.unita), 386, 16);
-
-    // tier, data di rilascio, QR
-    var ry = 426, rh = 91, tw = 92, dwid = 102;
-    [[mx, tw, 'LIVELLO'], [mx + tw + 8, dwid, 'DATA DI RILASCIO']].forEach(function (b) {
-      ctx.fillStyle = t.panel; ctx.fillRect(b[0], ry, b[1], rh);
-      ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(b[0] + 0.5, ry + 0.5, b[1] - 1, rh - 1);
       ctx.fillStyle = t.muted; font(ctx, '600', 7.5, F_COND);
-      spaced(ctx, b[2], b[0] + b[1] / 2, ry + 14, 1.4, 'center', b[1] - 8);
-    });
-    var tx = mx + tw / 2;
-    ctx.fillStyle = t.accent; font(ctx, '400', 38, F_STENCIL);
-    ctx.textAlign = 'center'; ctx.fillText(d.tier ? 'T' + d.tier : '—', tx, ry + 62); ctx.textAlign = 'left';
-    ctx.fillStyle = t.ink; font(ctx, '700', 9.5, F_COND);
-    spaced(ctx, 'TIER', tx, ry + rh - 8, 1.1, 'center');
-    var dx = mx + tw + 8 + dwid / 2;
-    var ril = fmtData(d.rilascio) || '—';
-    ctx.fillStyle = t.accent; font(ctx, '700', 15, F_MONO);
-    spaced(ctx, ril, dx, ry + 55, 0.3, 'center', dwid - 10);
-
-    var qx = W - 16 - rh, qy = ry, qs = rh;
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(qx, qy, qs, qs);
-    var qr = null;
-    if (d.qrText && d.qrText.trim() && root.QR) { try { qr = root.QR.encode(d.qrText, 'M'); } catch (e) { qr = null; } }
-    if (qr) {
-      var quiet = 2, m = qs / (qr.size + quiet * 2);
-      ctx.fillStyle = '#000000';
-      for (var yy = 0; yy < qr.size; yy++) for (var xx = 0; xx < qr.size; xx++)
-        if (qr.get(xx, yy)) ctx.fillRect(qx + (xx + quiet) * m, qy + (yy + quiet) * m, m + 0.02, m + 0.02);
-    } else {
-      ctx.save(); ctx.strokeStyle = t.accent; ctx.setLineDash([3, 2]); ctx.strokeRect(qx + 0.5, qy + 0.5, qs - 1, qs - 1); ctx.restore();
-      ctx.fillStyle = '#6b6658'; font(ctx, '700', 11, F_MONO);
-      ctx.textAlign = 'center'; ctx.fillText('QR', qx + qs / 2, qy + qs / 2 + 4); ctx.textAlign = 'left';
+      spaced(ctx, label, mx, y + 8, 1.5);
+      ctx.fillStyle = color || t.ink; font(ctx, '700', size, F_COND);
+      spaced(ctx, value || '—', mx, y + 10 + size * 0.95, 0.5, 'left', mw);
+      ctx.fillStyle = t.line; ctx.fillRect(mx, y + 15 + size, mw, 1);
     }
-    return { qrVersion: qr ? qr.version : 0 };
-  }
+    field('COGNOME', up(d.cognome), 230, 20);
+    field('NOME', up(d.nome), 268, 20);
+    ctx.fillStyle = t.muted; font(ctx, '600', 7.5, F_COND);
+    spaced(ctx, 'CALLSIGN', mx, 314, 1.5);
+    var cs = up(d.callsign) ? '“' + up(d.callsign) + '”' : '—';
+    ctx.fillStyle = t.accent; font(ctx, '400', 26, F_STENCIL);
+    spaced(ctx, cs, mx, 340, 1, 'left', mw);
+    field('UNITÀ DI APPARTENENZA', up(d.unita), 346, 14);
 
-  /**
-   * RETRO: brevetti. d.brevetti = { <id>: 'AAAA-MM-GG' } per quelli conseguiti.
-   * Mostra tutto il catalogo: timbro se conseguito, spazio tratteggiato se no.
-   */
-  function drawBack(canvas, d, assets, scale, catalogo) {
-    scale = scale || 1;
-    canvas.width = Math.round(W * scale);
-    canvas.height = Math.round(H * scale);
-    var ctx = canvas.getContext('2d');
-    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
-    var t = THEMES[d.tema] || THEMES.notte;
-    var paper = PAPER[d.tema] || PAPER.notte;
-    var up = function (s) { return (s || '').toString().trim().toUpperCase(); };
-    var cat = catalogo || BREVETTI;
+    // brevetti: fino a 10 (2 righe da 5)
+    var cat = (catalogo || BREVETTI).slice(0, 10);
     var ok = d.brevetti || {};
-
-    ctx.fillStyle = paper; ctx.fillRect(0, 0, W, H);
-    // trama leggera della carta
-    var R = rng(7);
-    ctx.fillStyle = 'rgba(80,70,40,0.05)';
-    for (var i = 0; i < 900; i++) ctx.fillRect(R() * W, R() * H, 1, 1);
-    logoAt(ctx, assets, '#1c1c18', 46, 150, 240, 0.05);
-
-    var who = [up(d.cognome), up(d.nome)].filter(Boolean).join(' ');
-    if (up(d.callsign)) who += (who ? '  ' : '') + '“' + up(d.callsign) + '”';
-    if (up(d.numero)) who += (who ? '  ·  ' : '') + up(d.numero);
-    header(ctx, t, assets, 'BREVETTI', who || 'OPERATORE');
-
-    // griglia timbri
-    var n = cat.length, cols = n <= 6 ? 2 : 3, rows = Math.max(1, Math.ceil(n / cols));
-    var gx = 16, gy = 80, gw = W - 32, gh = 418;
-    var cw = gw / cols, ch = gh / rows;
-    var r = Math.min(cw, ch) / 2 - 9;
+    var gy = 382;
+    ctx.fillStyle = t.panel; ctx.fillRect(mx, gy, mw, 134);
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(mx + 0.5, gy + 0.5, mw - 1, 133);
+    ctx.fillStyle = t.accent; font(ctx, '700', 8, F_COND);
+    spaced(ctx, 'BREVETTI', mx + 8, gy + 12, 2);
+    var nOk = cat.filter(function (b) { return ok[b.id]; }).length;
+    ctx.fillStyle = t.muted; font(ctx, '600', 7.5, F_COND);
+    spaced(ctx, nOk + ' / ' + cat.length, mx + mw - 8, gy + 12, 1, 'right');
+    var cols = 5, cw = mw / cols, rowsN = Math.max(1, Math.ceil(cat.length / cols));
+    var areaY = gy + 18, areaH = 134 - 22, rh = 58;
+    var startY = areaY + (areaH - rowsN * rh) / 2;
     cat.forEach(function (b, k) {
       var c = k % cols, rr = Math.floor(k / cols);
-      var inRow = Math.min(cols, n - rr * cols);           // centra l'ultima riga se incompleta
-      var off = (cols - inRow) * cw / 2;
-      var cx = gx + off + c * cw + cw / 2, cy = gy + rr * ch + ch / 2;
-      if (ok[b.id]) timbro(ctx, b, cx, cy, r, ok[b.id], paper);
-      else slotVuoto(ctx, b, cx, cy, r, '#a49b80', paper);
+      var inRow = Math.min(cols, cat.length - rr * cols);
+      var cx = mx + (cols - inRow) * cw / 2 + c * cw + cw / 2;
+      var cy = startY + rr * rh + 17;
+      distintivo(ctx, b, cx, cy, 15, ok[b.id], t);
+      ctx.fillStyle = ok[b.id] ? t.ink : t.muted; font(ctx, '700', 7, F_COND);
+      spaced(ctx, b.nome.toUpperCase(), cx, cy + 26, 0.4, 'center', cw - 6);
+      if (ok[b.id]) {
+        var dd = fmtData(ok[b.id]);
+        ctx.fillStyle = t.accent; font(ctx, '700', 6.5, F_MONO);
+        spaced(ctx, dd, cx, cy + 35, 0, 'center', cw - 6);
+      }
     });
-
-    ctx.fillStyle = '#5a5444'; font(ctx, '600', 8, F_COND);
-    spaced(ctx, 'IL TIMBRO ATTESTA IL SUPERAMENTO DELL’ESAME DEL CORSO', W / 2, 512, 1, 'center', W - 32);
-    hazard(ctx, 0, H - 6, W, 6, t.accent, t.bg);
   }
 
-  root.TauriCard = { draw: draw, drawBack: drawBack, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI };
+  root.TauriCard = { draw: draw, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI };
 })(window);
