@@ -116,7 +116,11 @@
     { id: 'comunicazioni', nome: 'Comunicazioni', icona: 'radio', ink: '#2d6a3e' },
     { id: 'survivor', nome: 'Survivor', icona: 'fuoco', ink: '#8f4a12' },
     { id: 'tiro', nome: 'Tiro dinamico', icona: 'mirino', ink: '#a1221c' },
-    { id: 'cqb', nome: 'CQB', icona: 'cqb', ink: '#3b2f63' }
+    { id: 'cqb', nome: 'CQB', icona: 'cqb', ink: '#3b2f63' },
+    { id: 'medicina', nome: 'Medicina tattica', icona: 'croce', ink: '#9c1c3a' },
+    { id: 'nbc', nome: 'Chimico/batteriologico', icona: 'nbc', ink: '#6b6a12' },
+    { id: 'meccanica', nome: 'Meccanica ASG', icona: 'chiave', ink: '#4a4f57' },
+    { id: 'corda', nome: 'Manovre su corda', icona: 'moschettone', ink: '#1f6b6b' }
   ];
   var INK_RISERVA = ['#1f4f8f', '#2d6a3e', '#8f4a12', '#a1221c', '#3b2f63', '#1c1c18'];
 
@@ -182,6 +186,36 @@
         ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(-0.55 * s, 0); ctx.lineTo(0.12 * s, 0); ctx.stroke();
         p([0.24, 0, 0.06, -0.13, 0.06, 0.13]); ctx.fill();
+        break;
+      case 'croce':
+        p([-0.13, -0.42, 0.13, -0.42, 0.13, -0.13, 0.42, -0.13, 0.42, 0.13, 0.13, 0.13, 0.13, 0.42, -0.13, 0.42, -0.13, 0.13, -0.42, 0.13, -0.42, -0.13, -0.13, -0.13]);
+        ctx.fill();
+        break;
+      case 'nbc':
+        // tre anelli intrecciati attorno a un centro (simbolo di rischio biologico stilizzato)
+        for (var k = 0; k < 3; k++) {
+          var ang = -Math.PI / 2 + k * Math.PI * 2 / 3;
+          ctx.beginPath(); ctx.arc(Math.cos(ang) * 0.17 * s, Math.sin(ang) * 0.17 * s, 0.2 * s, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(0, 0, 0.07 * s, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'chiave':
+        ctx.save(); ctx.rotate(-Math.PI / 4);
+        ctx.lineWidth = s * 0.12; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, 0.42 * s); ctx.lineTo(0, -0.12 * s); ctx.stroke();
+        ctx.lineWidth = s * 0.075;
+        ctx.beginPath(); ctx.arc(0, -0.26 * s, 0.17 * s, Math.PI * 0.35 + Math.PI / 2, Math.PI * 1.65 + Math.PI / 2); ctx.stroke();
+        ctx.restore();
+        break;
+      case 'moschettone':
+        ctx.save(); ctx.rotate(Math.PI / 7);
+        var mw = 0.22 * s, mh = 0.42 * s;
+        ctx.beginPath();
+        ctx.moveTo(-mw, -mh + mw); ctx.arc(0, -mh + mw, mw, Math.PI, 0); ctx.lineTo(mw, mh - mw);
+        ctx.arc(0, mh - mw, mw, 0, Math.PI); ctx.closePath(); ctx.stroke();
+        ctx.lineWidth = s * 0.05;
+        ctx.beginPath(); ctx.moveTo(mw, -0.05 * s); ctx.lineTo(mw - 0.12 * s, 0.22 * s); ctx.stroke();
+        ctx.restore();
         break;
       default:
         star(ctx, 0, 0, s / 12);

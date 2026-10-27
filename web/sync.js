@@ -280,6 +280,14 @@
     if (stato !== 'approvato') upd.istruttore = false; // revocando l'accesso si toglie anche il permesso brevetti
     db.collection('utenti').doc(u.uid).update(upd).catch(function (e) { toast('Errore: ' + (e.message || e)); });
   }
+  // solo l'amministratore: elimina dall'elenco un account non abilitato
+  function eliminaUtente(u) {
+    if (!isAdmin) return;
+    if (!confirm('Eliminare definitivamente ' + (u.email || 'questo account') + ' dall\'elenco?\nSe in futuro rientra con Google, comparirà come nuova richiesta.')) return;
+    db.collection('utenti').doc(u.uid).delete()
+      .then(function () { toast('Account eliminato'); })
+      .catch(function (e) { toast('Errore: ' + (e.message || e)); });
+  }
   function setIstruttore(u, val) {
     var msg = val ? 'Permettere a ' + (u.email || '') + ' di assegnare e togliere i brevetti?'
                   : 'Togliere a ' + (u.email || '') + ' il permesso di assegnare i brevetti?';
@@ -324,7 +332,10 @@
         ]);
         li.querySelector('span').textContent += u.istruttore ? ' · abilitato · istruttore (brevetti)' : ' · abilitato';
       } else {
-        li = row(u, [{ label: 'Abilita', fn: function () { setStato(u, 'approvato'); } }]);
+        li = row(u, [
+          { label: 'Abilita', fn: function () { setStato(u, 'approvato'); } },
+          { label: 'Elimina', fn: function () { eliminaUtente(u); } }
+        ]);
         li.querySelector('span').textContent += ' · non abilitato';
       }
       la.appendChild(li);
