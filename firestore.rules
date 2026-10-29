@@ -53,5 +53,24 @@ service cloud.firestore {
       allow delete: if isAdmin()
         || (isApproved() && resource.data.get('brevetti', {}).size() == 0);
     }
+
+    // Addestramento: contenuti dei percorsi (li modificano amministratore e istruttori)
+    match /percorsi/{bid} {
+      allow read: if isApproved();
+      allow write: if canStamp();
+    }
+
+    // Progressi dell'allievo (schede lette, tentativi del test): li scrive l'allievo stesso
+    match /progressi/{uid} {
+      allow read: if canStamp() || (request.auth != null && request.auth.uid == uid);
+      allow create, update: if isApproved() && request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Esercizi pratici convalidati: solo amministratore e istruttori
+    match /validazioni/{uid} {
+      allow read: if canStamp() || (request.auth != null && request.auth.uid == uid);
+      allow write: if canStamp();
+    }
   }
 }

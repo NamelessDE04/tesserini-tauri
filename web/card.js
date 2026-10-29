@@ -397,5 +397,15 @@
     });
   }
 
-  root.TauriCard = { draw: draw, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI };
+  // distintivo singolo (per l'elenco degli addestramenti)
+  function badge(canvas, b, conseguito, px) {
+    px = px || 48;
+    var dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+    canvas.width = Math.round(px * dpr); canvas.height = Math.round(px * dpr);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(canvas.width / 40, 0, 0, canvas.height / 40, 0, 0);
+    distintivo(ctx, b, 20, 20, 18.5, conseguito ? 'x' : '', THEMES.notte);
+  }
+
+  root.TauriCard = { draw: draw, badge: badge, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI };
 })(window);

@@ -70,6 +70,10 @@
   api.isAdmin = function () { return isAdmin && approved; };
   // può assegnare i brevetti: amministratore o account abilitato come istruttore
   api.canStamp = function () { return approved && (isAdmin || istruttore); };
+  api.db = function () { return db; };
+  api.user = function () { return me; };
+  api.approved = function () { return approved; };
+  api.fieldValue = function () { return firebase.firestore.FieldValue; };
   function roleChanged() { try { window.dispatchEvent(new Event('tauri-role')); } catch (e) {} }
   var unsubUser = null, unsubArch = null, unsubAdmin = null;
 

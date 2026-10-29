@@ -5,7 +5,7 @@
   var KEY_DRAFT = 'tauri.bozza.v1';
   var KEY_ARCH = 'tauri.archivio.v1';
   var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
-  var VERSIONE = '1.24'; // aggiornare insieme a CACHE in sw.js
+  var VERSIONE = '1.25'; // aggiornare insieme a CACHE in sw.js
 
   var FIELDS = ['cognome', 'nome', 'callsign', 'nascita', 'unita', 'numero', 'rilascio', 'sangue', 'tier', 'tema'];
   var state = defaults();
@@ -414,8 +414,11 @@
   }
   $('cerca').addEventListener('input', disegnaArchivio);
 
+  var homeTab = 'tessere';
   function mostraVista(editor) {
-    $('viewArchivio').hidden = editor;
+    $('homeTabs').hidden = editor;
+    $('viewTrain').hidden = editor || homeTab !== 'addestramento';
+    $('viewArchivio').hidden = editor || homeTab !== 'tessere';
     $('viewEditor').hidden = !editor;
     $('barraEditor').hidden = !editor;
     $('btnTornaArchivio').hidden = !editor;
@@ -445,6 +448,15 @@
   }
   window.addEventListener('popstate', function () { if (!$('viewEditor').hidden) tornaArchivio(true); });
   $('btnNuova').onclick = function () { apriEditor(null); };
+  function scegliTab(t) {
+    homeTab = t;
+    $('tabTessere').setAttribute('aria-pressed', String(t === 'tessere'));
+    $('tabAddestramento').setAttribute('aria-pressed', String(t === 'addestramento'));
+    mostraVista(false);
+    if (t === 'tessere') disegnaArchivio(); else if (window.TauriTrain) window.TauriTrain.mostra();
+  }
+  $('tabTessere').onclick = function () { scegliTab('tessere'); };
+  $('tabAddestramento').onclick = function () { scegliTab('addestramento'); };
   $('btnTornaArchivio').onclick = function () { tornaArchivio(false); };
   $('btnElimina').onclick = function () {
     if (!state.id) return;

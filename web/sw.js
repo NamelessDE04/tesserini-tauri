@@ -1,7 +1,7 @@
 /* Service worker: l'app funziona anche senza connessione. */
-var CACHE = 'tesserini-tauri-v24';
+var CACHE = 'tesserini-tauri-v25';
 var FILES = [
-  './', 'index.html', 'app.css', 'app.js', 'card.js', 'config.js', 'sync.js', 'manifest.webmanifest',
+  './', 'index.html', 'app.css', 'app.js', 'card.js', 'train.js', 'train-seed.js', 'config.js', 'sync.js', 'manifest.webmanifest',
   'img/logo.png', 'img/icon-192.png', 'img/icon-512.png', 'img/icon-maskable-512.png', 'img/apple-touch-icon.png'
 ];
 

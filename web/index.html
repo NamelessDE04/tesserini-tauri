@@ -31,6 +31,11 @@
   <button type="button" class="top-back" id="btnTornaArchivio" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Archivio</span></button>
 </header>
 
+<nav class="home-tabs" id="homeTabs" aria-label="Sezioni">
+  <button type="button" class="home-tab" id="tabTessere" aria-pressed="true">Tessere</button>
+  <button type="button" class="home-tab" id="tabAddestramento" aria-pressed="false">Addestramento</button>
+</nav>
+
 <section class="archivio-view" id="viewArchivio">
   <div class="arch-head">
     <div>
@@ -53,6 +58,8 @@
   </section>
   <p class="versione" id="versione"></p>
 </section>
+
+<section class="archivio-view train-view" id="viewTrain" hidden></section>
 
 <main id="viewEditor" hidden>
   <section class="preview-wrap">
@@ -191,5 +198,7 @@
 <script src="sync.js"></script>
 <script src="card.js"></script>
 <script src="app.js"></script>
+<script src="train-seed.js"></script>
+<script src="train.js"></script>
 </body>
 </html>
