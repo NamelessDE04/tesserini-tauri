@@ -193,6 +193,7 @@
     (x.testo || '').split(/\n\s*\n/).forEach(function (par) {
       // un paragrafo "[[fig:nome]]" inserisce un'illustrazione dell'elenco FIGURE
       var m = /^\s*\[\[fig:([a-z0-9-]+)\]\]\s*$/.exec(par), f = m && FIGURE[m[1]];
+      if (/^\s*\[\[3d:gearbox\]\]\s*$/.test(par)) { art.appendChild(el('a', { class: 'btn btn-accent tr-3d', href: 'gearbox.html', text: '▶ Guarda il gearbox in 3D animato' })); return; }
       if (m) { if (f) art.appendChild(el('figure', { class: 'tr-fig' }, [el('a', { href: 'img/fig/' + m[1] + '.svg', target: '_blank', rel: 'noopener' }, [el('img', { src: 'img/fig/' + m[1] + '.svg', alt: f, loading: 'lazy' })]), el('figcaption', { text: f + ' — tocca per ingrandire' })])); return; }
       art.appendChild(el('p', { text: par }));
     });

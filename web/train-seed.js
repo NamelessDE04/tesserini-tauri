@@ -65,6 +65,7 @@ window.TAURI_SEED = {
         testo: 'Premendo il grilletto si chiudono i contatti: il motore gira e il suo pignone muove gli ingranaggi del gearbox (bevel, spur e sector). Il sector, con i suoi denti, tira indietro il pistone comprimendo la molla.\n\n' +
           'Quando il dente lascia il pistone, la molla lo spinge in avanti: la testa del pistone comprime l\'aria nel cilindro, che passa dalla testa del cilindro al nozzle e spinge il pallino lungo la canna.\n\n' +
           '[[fig:mec-ciclo]]\n\n' +
+          '[[3d:gearbox]]\n\n' +
           'Il tappet plate fa arretrare il nozzle per far entrare un nuovo pallino in camera. L\'anti-reversal latch impedisce agli ingranaggi di girare all\'indietro sotto la spinta della molla. Il cut-off lever interrompe i contatti dopo un colpo quando si spara in semiautomatico.\n\n' +
           'Il gearbox più diffuso è il versione 2 (repliche tipo M4/AR15); il versione 3 è tipico delle repliche AK.'
       },

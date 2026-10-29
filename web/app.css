@@ -270,3 +270,4 @@ input[type=number] { width: 100%; min-height: 46px; padding: 10px 12px; backgrou
 .tr-val span { display: flex; flex-direction: column; gap: 2px; }
 .tr-val small { color: var(--muted); font-size: 14px; letter-spacing: 0; text-transform: none; }
 .train-view .card { gap: 10px; }
+.tr-3d { display: flex; justify-content: center; text-decoration: none; margin: 4px 0 10px; }
