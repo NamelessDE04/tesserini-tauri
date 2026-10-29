@@ -9,12 +9,15 @@ window.TAURI_SEED = {
         id: 't1', titolo: 'La carta topografica',
         testo: 'La scala indica quante volte la realtà è stata rimpicciolita. Su una carta 1:25.000, 1 cm sulla carta corrisponde a 25.000 cm reali, cioè 250 m: 4 cm fanno 1 km.\n\n' +
           'Le curve di livello uniscono i punti alla stessa quota. La distanza in altezza fra due curve vicine si chiama equidistanza ed è indicata a margine della carta. Curve molto ravvicinate indicano un pendio ripido, curve distanziate un terreno dolce.\n\n' +
+          '[[fig:nav-scala]]\n\n' +
           'Prima di usare una carta leggi sempre la legenda: simboli di sentieri, corsi d\'acqua, edifici, vegetazione e la scala grafica.'
       },
       {
         id: 't2', titolo: 'La bussola e l\'azimut',
         testo: 'L\'azimut è l\'angolo, misurato in senso orario a partire dal Nord, tra il Nord e la direzione verso un punto. Va da 0° a 360°: Est è 90°, Sud 180°, Ovest 270°.\n\n' +
           'Il contro-azimut è la direzione opposta, utile per tornare indietro: si ottiene aggiungendo 180° se l\'azimut è minore di 180°, togliendo 180° se è maggiore.\n\n' +
+          '[[fig:nav-azimut]]\n\n' +
+          '[[fig:nav-bussola]]\n\n' +
           'L\'ago magnetico viene deviato da oggetti metallici e campi elettrici: tieni la bussola lontana da armi, radio, telefono e veicoli quando prendi una misura.\n\n' +
           'La declinazione magnetica è la differenza tra Nord geografico e Nord magnetico. In Nord Italia è di pochi gradi e sulle brevi distanze di gioco spesso si trascura, ma va conosciuta.'
       },
@@ -22,6 +25,7 @@ window.TAURI_SEED = {
         id: 't3', titolo: 'Orientarsi e muoversi',
         testo: 'Orientare la carta significa ruotarla finché il suo Nord coincide con il Nord reale: così ciò che vedi davanti a te è anche davanti a te sulla carta.\n\n' +
           'Per misurare le distanze a piedi si contano i passi doppi (ogni volta che lo stesso piede tocca terra). Ognuno deve tarare il proprio passo su 100 m misurati, in piano e in salita.\n\n' +
+          '[[fig:nav-passo]]\n\n' +
           'Usa i corrimano (sentieri, torrenti, recinzioni, linee elettriche) per seguire una direzione senza consultare continuamente la bussola, e i punti d\'arresto (un incrocio, un ponte) per capire quando hai superato l\'obiettivo.'
       }
     ],
@@ -52,6 +56,7 @@ window.TAURI_SEED = {
       {
         id: 't1', titolo: 'Sicurezza e regole',
         testo: 'Prima di qualsiasi intervento metti in sicurezza la replica: sicura inserita, caricatore tolto, batteria scollegata (o bombola/gas scaricato nelle GBB), un colpo a vuoto in direzione sicura per liberare la camera. Indossa sempre le protezioni per gli occhi anche al banco.\n\n' +
+          '[[fig:mec-sicurezza]]\n\n' +
           'In Italia le repliche softair devono restare sotto 1 joule di energia alla volata; molti campi applicano limiti più bassi e regole diverse per ruolo (assalto, supporto, tiratore scelto). L\'energia si calcola con E = ½ · m · v²: con pallini da 0,20 g a 100 m/s si ha 1 J.\n\n' +
           'Dopo ogni modifica alla molla o alla compressione la replica va ricontrollata al cronografo, con il peso di pallino previsto dal campo.'
       },
@@ -59,12 +64,14 @@ window.TAURI_SEED = {
         id: 't2', titolo: 'Come funziona un\'AEG',
         testo: 'Premendo il grilletto si chiudono i contatti: il motore gira e il suo pignone muove gli ingranaggi del gearbox (bevel, spur e sector). Il sector, con i suoi denti, tira indietro il pistone comprimendo la molla.\n\n' +
           'Quando il dente lascia il pistone, la molla lo spinge in avanti: la testa del pistone comprime l\'aria nel cilindro, che passa dalla testa del cilindro al nozzle e spinge il pallino lungo la canna.\n\n' +
+          '[[fig:mec-ciclo]]\n\n' +
           'Il tappet plate fa arretrare il nozzle per far entrare un nuovo pallino in camera. L\'anti-reversal latch impedisce agli ingranaggi di girare all\'indietro sotto la spinta della molla. Il cut-off lever interrompe i contatti dopo un colpo quando si spara in semiautomatico.\n\n' +
           'Il gearbox più diffuso è il versione 2 (repliche tipo M4/AR15); il versione 3 è tipico delle repliche AK.'
       },
       {
         id: 't3', titolo: 'Hop-up, canna, batterie e manutenzione',
         testo: 'L\'hop-up, con il gommino (bucking) e il nub, imprime al pallino una rotazione all\'indietro (backspin): per effetto Magnus il pallino "galleggia" e il tiro si allunga. Poco hop-up = il pallino cade presto; troppo hop-up = il pallino sale e fa la "banana". Si regola per avere un tiro il più possibile piatto alla distanza d\'uso, con il peso di pallino che si usa davvero.\n\n' +
+          '[[fig:mec-hopup]]\n\n' +
           'La canna interna e il gommino vanno tenuti puliti e asciutti: si puliscono con una bacchetta e un panno, senza grasso. Il grasso va sugli ingranaggi; per la guarnizione del pistone e il cilindro si usa grasso o olio al silicone, in piccole quantità.\n\n' +
           'Lo spessoramento (shimming) riduce il gioco degli ingranaggi e la correzione dell\'AOE (angolo con cui il sector incontra il pistone) riduce l\'usura del gearbox.\n\n' +
           'Batterie: le LiPo (7,4 V o 11,1 V) danno più spinta delle NiMH ma vanno trattate con cura: mai scaricarle del tutto, conservarle alla tensione di storage (circa 3,8 V per cella) e mai usarle se gonfie. Con tensioni alte è consigliato un MOSFET, che protegge i contatti del grilletto.'

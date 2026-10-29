@@ -18,6 +18,17 @@
   var quiz = null;
   var unsubs = [];
 
+  // illustrazioni disponibili per le schede (file in img/fig/<nome>.svg) e didascalia
+  var FIGURE = {
+    'nav-scala': 'Scala della carta e curve di livello',
+    'nav-azimut': 'Azimut e contro-azimut',
+    'nav-bussola': 'Le parti della bussola a piastra',
+    'nav-passo': 'Contare i passi doppi',
+    'mec-ciclo': 'Il ciclo di sparo di un\'AEG',
+    'mec-hopup': 'L\'hop-up e la regolazione del tiro',
+    'mec-sicurezza': 'Messa in sicurezza ed energia del colpo'
+  };
+
   function toast(m) { if (window.TauriApp) window.TauriApp.toast(m); }
   function db() { return S.db && S.db(); }
   function user() { return S.user && S.user(); }
@@ -179,7 +190,12 @@
     root.appendChild(indietro(brev(s.bid).nome, function () { vai({ nome: 'percorso', bid: s.bid }); }));
     if (!x) return;
     var art = el('article', { class: 'card tr-scheda' }, [el('h2', { text: x.titolo })]);
-    (x.testo || '').split(/\n\s*\n/).forEach(function (par) { art.appendChild(el('p', { text: par })); });
+    (x.testo || '').split(/\n\s*\n/).forEach(function (par) {
+      // un paragrafo "[[fig:nome]]" inserisce un'illustrazione dell'elenco FIGURE
+      var m = /^\s*\[\[fig:([a-z0-9-]+)\]\]\s*$/.exec(par), f = m && FIGURE[m[1]];
+      if (m) { if (f) art.appendChild(el('figure', { class: 'tr-fig' }, [el('a', { href: 'img/fig/' + m[1] + '.svg', target: '_blank', rel: 'noopener' }, [el('img', { src: 'img/fig/' + m[1] + '.svg', alt: f, loading: 'lazy' })]), el('figcaption', { text: f + ' — tocca per ingrandire' })])); return; }
+      art.appendChild(el('p', { text: par }));
+    });
     root.appendChild(art);
     var ok = !!letti(s.bid)[x.id];
     root.appendChild(btn(ok ? 'Letta ✓ (tocca per segnarla da rileggere)' : 'Segna come letta', function () {

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" font-family="Arial, Helvetica, sans-serif">
+  <rect width="680" height="420" rx="16" fill="#f3eee1"/>
+  <defs>
+    <marker id="fr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#b3261e"/></marker>
+  </defs>
+  <!-- canna interna e camera hop-up -->
+  <rect x="20" y="118" width="130" height="16" fill="#c9c1aa" stroke="#1e1e1a" stroke-width="2"/>
+  <rect x="150" y="104" width="44" height="44" rx="4" fill="#8b8676" stroke="#1e1e1a" stroke-width="2"/>
+  <circle cx="172" cy="126" r="8" fill="#fff" stroke="#1e1e1a" stroke-width="2"/>
+  <!-- nozzle -->
+  <rect x="194" y="119" width="34" height="14" fill="#e0b25c" stroke="#1e1e1a" stroke-width="2"/>
+  <!-- cilindro con testa -->
+  <rect x="228" y="100" width="150" height="52" fill="#dfe6ea" stroke="#1e1e1a" stroke-width="2.5"/>
+  <rect x="228" y="100" width="14" height="52" fill="#8b8676" stroke="#1e1e1a" stroke-width="2"/>
+  <!-- pistone: testa + corpo con cremagliera -->
+  <rect x="262" y="104" width="12" height="44" fill="#1f4f8f"/>
+  <rect x="274" y="110" width="200" height="32" fill="none" stroke="#1f4f8f" stroke-width="3"/>
+  <g fill="#1f4f8f"><path d="M330 142 h10 l-5 9z M348 142 h10 l-5 9z M366 142 h10 l-5 9z M384 142 h10 l-5 9z M402 142 h10 l-5 9z M420 142 h10 l-5 9z M438 142 h10 l-5 9z"/></g>
+  <!-- molla -->
+  <path d="M280 126 l8 -12 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l8 24 l8 -24 l4 12" fill="none" stroke="#b3261e" stroke-width="2.2"/>
+  <!-- guidamolla -->
+  <rect x="474" y="114" width="40" height="24" fill="#8b8676" stroke="#1e1e1a" stroke-width="2"/>
+  <!-- ingranaggi -->
+  <g stroke="#1e1e1a" stroke-width="2.5">
+    <circle cx="395" cy="205" r="46" fill="#cfc6ad"/>
+    <circle cx="474" cy="250" r="32" fill="#cfc6ad"/>
+    <circle cx="548" cy="225" r="36" fill="#cfc6ad"/>
+  </g>
+  <path d="M395 205 m-30 -35 a46 46 0 0 1 60 0" fill="none" stroke="#1e1e1a" stroke-width="7" stroke-dasharray="4 4"/>
+  <g fill="#1e1e1a"><circle cx="395" cy="205" r="5"/><circle cx="474" cy="250" r="5"/><circle cx="548" cy="225" r="5"/></g>
+  <!-- tappet plate -->
+  <path d="M211 119 V92 H380 V160" fill="none" stroke="#2d6a3e" stroke-width="4"/>
+  <!-- motore -->
+  <rect x="528" y="292" width="40" height="100" rx="8" fill="#5a5444" stroke="#1e1e1a" stroke-width="2"/>
+  <rect x="541" y="262" width="14" height="30" fill="#8b8676" stroke="#1e1e1a" stroke-width="2"/>
+  <!-- anti-reversal -->
+  <path d="M590 196 l18 -10 l4 8 l-18 10z" fill="#b3261e" stroke="#1e1e1a" stroke-width="1.5"/>
+  <!-- grilletto e contatti -->
+  <path d="M430 330 q10 30 -6 50" fill="none" stroke="#1e1e1a" stroke-width="6" stroke-linecap="round"/>
+  <rect x="446" y="318" width="34" height="14" fill="#e0b25c" stroke="#1e1e1a" stroke-width="2"/>
+  <!-- etichette -->
+  <g font-size="14" fill="#1e1e1a">
+    <text x="20" y="98" font-weight="700">Canna</text>
+    <text x="128" y="172">Hop-up</text>
+    <text x="96" y="76" font-weight="700" fill="#2d6a3e">Tappet plate</text>
+    <text x="190" y="192">Nozzle</text><path d="M210 180 L211 134" stroke="#1e1e1a" stroke-width="1.2"/>
+    <text x="300" y="70" font-weight="700">Cilindro</text>
+    <text x="268" y="185" fill="#1f4f8f" font-weight="700">Pistone</text>
+    <text x="420" y="90" fill="#b3261e" font-weight="700">Molla</text>
+    <text x="478" y="108">Guidamolla</text>
+    <text x="330" y="270" font-weight="700">Sector</text>
+    <text x="448" y="302" font-weight="700">Spur</text>
+    <text x="590" y="262" font-weight="700">Bevel</text>
+    <text x="614" y="190">Anti-</text><text x="614" y="206">reversal</text>
+    <text x="578" y="350" font-weight="700">Motore</text>
+    <text x="372" y="404">Grilletto e contatti</text>
+  </g>
+  <!-- sequenza -->
+  <g font-size="13" fill="#b3261e" font-weight="700">
+    <circle cx="36" cy="200" r="11" fill="#b3261e"/><text x="36" y="205" text-anchor="middle" fill="#fff">1</text><text x="54" y="205">grilletto → motore</text>
+    <circle cx="36" cy="230" r="11" fill="#b3261e"/><text x="36" y="235" text-anchor="middle" fill="#fff">2</text><text x="54" y="235">bevel → spur → sector</text>
+    <circle cx="36" cy="260" r="11" fill="#b3261e"/><text x="36" y="265" text-anchor="middle" fill="#fff">3</text><text x="54" y="265">sector tira il pistone</text>
+    <circle cx="36" cy="290" r="11" fill="#b3261e"/><text x="36" y="295" text-anchor="middle" fill="#fff">4</text><text x="54" y="295">la molla lo rilancia</text>
+    <circle cx="36" cy="320" r="11" fill="#b3261e"/><text x="36" y="325" text-anchor="middle" fill="#fff">5</text><text x="54" y="325">l'aria spinge il pallino</text>
+  </g>
+  <line x1="250" y1="126" x2="200" y2="126" stroke="#b3261e" stroke-width="0" />
+  <path d="M140 40 H40" stroke="#b3261e" stroke-width="3" marker-end="url(#fr)"/>
+  <text x="150" y="45" font-size="13" fill="#b3261e" font-weight="700">uscita del pallino</text>
+</svg>
