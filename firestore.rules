@@ -60,6 +60,13 @@ service cloud.firestore {
       allow write: if canStamp();
     }
 
+    // Immagini dei percorsi (una per documento, già ridotte dall'app sotto il limite di 1 MB)
+    match /immagini/{id} {
+      allow read: if isApproved();
+      allow create, update: if canStamp() && request.resource.data.d is string && request.resource.data.d.size() < 1000000;
+      allow delete: if canStamp();
+    }
+
     // Progressi dell'allievo (schede lette, tentativi del test): li scrive l'allievo stesso
     match /progressi/{uid} {
       allow read: if canStamp() || (request.auth != null && request.auth.uid == uid);
