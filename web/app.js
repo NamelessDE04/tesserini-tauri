@@ -415,8 +415,11 @@
   $('cerca').addEventListener('input', disegnaArchivio);
 
   var homeTab = 'tessere';
+  // funzioni in prova: visibili solo all'account amministratore finché non vengono aperte a tutti
+  function anteprimaSoloAdmin() { return !window.TauriSync.enabled || window.TauriSync.isAdmin(); }
   function mostraVista(editor) {
-    $('homeTabs').hidden = editor;
+    if (!anteprimaSoloAdmin()) homeTab = 'tessere';
+    $('homeTabs').hidden = editor || !anteprimaSoloAdmin();
     $('viewTrain').hidden = editor || homeTab !== 'addestramento';
     $('viewArchivio').hidden = editor || homeTab !== 'tessere';
     $('viewEditor').hidden = !editor;
@@ -457,6 +460,7 @@
   }
   $('tabTessere').onclick = function () { scegliTab('tessere'); };
   $('tabAddestramento').onclick = function () { scegliTab('addestramento'); };
+  window.addEventListener('tauri-role', function () { if ($('viewEditor').hidden) scegliTab(homeTab); });
   $('btnTornaArchivio').onclick = function () { tornaArchivio(false); };
   $('btnElimina').onclick = function () {
     if (!state.id) return;
