@@ -338,10 +338,11 @@
     // tier: riquadro grande in evidenza · gruppo sanguigno: riquadro piccolo accanto
     var by = 189, bh = 33, tw2 = 106, sw = rw - tw2 - 7;
     ctx.fillStyle = t.accent; ctx.fillRect(rx, by, tw2, bh);
-    ctx.fillStyle = t.accentInk; font(ctx, '700', 7, F_COND);
-    spaced(ctx, 'TIER', rx + 6, by + 10, 1.2, 'left', tw2 - 12);
-    fitFont(ctx, d.tier ? 'T' + d.tier : '—', '400', 23, 10, F_STENCIL, tw2 - 12);
-    ctx.fillText(d.tier ? 'T' + d.tier : '—', rx + 6, by + 30);
+    // scritta unica e grande: "TIER 1" … "TIER 10", centrata nel riquadro
+    var tierTxt = d.tier ? 'TIER ' + d.tier : 'TIER —';
+    ctx.fillStyle = t.accentInk;
+    var tsz = fitFont(ctx, tierTxt, '400', 24, 10, F_STENCIL, tw2 - 12);
+    ctx.textAlign = 'center'; ctx.fillText(tierTxt, rx + tw2 / 2, by + bh / 2 + tsz * 0.36); ctx.textAlign = 'left';
     var sbx = rx + tw2 + 7;
     ctx.fillStyle = t.panel; ctx.fillRect(sbx, by, sw, bh);
     ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(sbx + 0.5, by + 0.5, sw - 1, bh - 1);
