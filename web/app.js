@@ -5,7 +5,7 @@
   var KEY_DRAFT = 'tauri.bozza.v1';
   var KEY_ARCH = 'tauri.archivio.v1';
   var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
-  var VERSIONE = '1.29'; // aggiornare insieme a CACHE in sw.js
+  var VERSIONE = '1.30'; // aggiornare insieme a CACHE in sw.js
 
   var FIELDS = ['cognome', 'nome', 'callsign', 'nascita', 'unita', 'numero', 'rilascio', 'sangue', 'tier', 'tema'];
   var state = defaults();

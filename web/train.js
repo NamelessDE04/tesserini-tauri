@@ -427,7 +427,23 @@
     function campo(label, input) { return el('label', null, [label, input]); }
     function testoIn(val, oninput, ph) { var t = el('input', { type: 'text', placeholder: ph || '' }); t.value = val || ''; t.addEventListener('input', function () { oninput(t.value); }); return t; }
     function numero(val, oninput, min, max) { var t = el('input', { type: 'number', min: min, max: max, inputmode: 'numeric' }); t.value = val; t.addEventListener('input', function () { oninput(parseInt(t.value, 10) || 0); }); return t; }
-    function autoAltezza(t) { t.style.height = 'auto'; t.style.height = Math.max(90, t.scrollHeight + 4) + 'px'; }
+    // adatta l'altezza del riquadro al testo senza far saltare la pagina
+    function autoAltezza(t, scrivendo) {
+      var y = window.scrollY;
+      corpo.style.minHeight = corpo.offsetHeight + 'px';   // la pagina non si accorcia mentre misuro
+      t.style.height = 'auto';
+      t.style.height = Math.max(90, t.scrollHeight + 4) + 'px';
+      corpo.style.minHeight = '';
+      if (window.scrollY !== y) window.scrollTo(0, y);
+      if (!scrivendo) return;
+      // se si scrive in fondo al riquadro, tiene visibile l'ultima riga sopra la tastiera e la barra "Salva"
+      if (t.selectionEnd >= t.value.length - 1) {
+        var vv = window.visualViewport, alto = vv ? vv.height + vv.offsetTop : window.innerHeight;
+        var barra = document.querySelector('.tr-save'), limite = alto - (barra ? barra.offsetHeight + 16 : 16);
+        var fondo = t.getBoundingClientRect().bottom;
+        if (fondo > limite) window.scrollBy(0, fondo - limite);
+      }
+    }
     function imgSrc(id) { return nuove[id] || imgCache[id]; }
     function anteprima(id) {
       var src = imgSrc(id), im = el('img', { alt: '' });
@@ -470,7 +486,7 @@
           ]));
         } else {
           var ta = el('textarea', { rows: 4, placeholder: 'Scrivi qui…' }); ta.value = bl.v || '';
-          ta.addEventListener('input', function () { bl.v = ta.value; autoAltezza(ta); });
+          ta.addEventListener('input', function () { bl.v = ta.value; autoAltezza(ta, true); });
           var qui = btn('📷 Foto qui', null, 'tr-qui', 'Inserisci foto nel punto del cursore');
           // su telefono il tocco sul bottone toglie il fuoco: memorizzo prima la posizione
           var posSalvata = null;
