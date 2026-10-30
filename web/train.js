@@ -235,6 +235,16 @@
     }
     var card = el('section', { class: 'card' });
     if (!p.sezioni.length) card.appendChild(el('p', { class: 'hint', text: canStamp() ? 'Il percorso è vuoto. Tocca "Modifica percorso" per aggiungere teoria, pratica o test.' : 'Il percorso non è ancora pronto.' }));
+    var demo = window.TAURI_DEMO && window.TAURI_DEMO[s.bid];
+    if (!p.sezioni.length && demo && S.isAdmin && S.isAdmin()) {
+      var bd = btn('Carica il percorso dimostrativo', function () {
+        if (!confirm('Caricare il percorso dimostrativo di ' + b.nome + '? Dopo potrai modificarlo o eliminarlo come qualsiasi altro.')) return;
+        bd.disabled = true; bd.textContent = 'Caricamento in corso…';
+        caricaDemo(s.bid, demo).then(function () { toast('Percorso dimostrativo caricato'); disegna(); },
+          function (e) { bd.disabled = false; bd.textContent = 'Carica il percorso dimostrativo'; toast('Errore: ' + errMsg(e)); });
+      }, 'btn-accent');
+      card.appendChild(bd);
+    }
     p.sezioni.forEach(function (x, i) {
       var ok = fatta(s.bid, x);
       card.appendChild(el('button', { type: 'button', class: 'tr-item', onclick: function () { vai({ nome: 'sez', bid: s.bid, id: x.id }); } }, [
@@ -376,6 +386,36 @@
       return d.collection('percorsi').doc(bid).set({ v: 2, sezioni: sezioni, aggiornatoDa: (u && u.email) || '', aggiornatoIl: Date.now() });
     }).then(function () {
       Object.keys(prima).forEach(function (id) { if (!dopo[id]) d.collection('immagini').doc(id).delete().catch(function () {}); });
+    });
+  }
+
+  // ---------- percorso dimostrativo (train-demo.js): le immagini vengono caricate come quelle scelte dal telefono
+  function caricaDemo(bid, demo) {
+    var nomi = {}, nuove = {};
+    demo.forEach(function (x) {
+      (x.blocchi || []).forEach(function (b) { if (b.img) nomi[b.img] = 1; });
+      (x.domande || []).forEach(function (d) { if (d.img) nomi[d.img] = 1; });
+    });
+    var ids = {};
+    return Promise.all(Object.keys(nomi).map(function (n) {
+      return fetch('img/demo/' + n + '.jpg', { cache: 'no-cache' }).then(function (r) {
+        if (!r.ok) throw new Error('immagine ' + n + ' non trovata'); return r.blob();
+      }).then(comprimi).then(function (d) { ids[n] = nuovoId('img'); nuove[ids[n]] = d; });
+    })).then(function () {
+      var sezioni = demo.map(function (x) {
+        var y = { id: nuovoId('s'), tipo: x.tipo, titolo: x.titolo };
+        if (x.tipo === 'test') {
+          y.nDomande = x.nDomande; y.minuti = x.minuti; y.soglia = x.soglia;
+          y.domande = x.domande.map(function (d) {
+            var q = { id: nuovoId('q'), testo: d.testo, opzioni: d.opzioni.slice(), corretta: d.corretta };
+            if (d.img) q.img = ids[d.img]; return q;
+          });
+        } else {
+          y.blocchi = x.blocchi.map(function (b) { return b.img ? { t: 'img', img: ids[b.img], cap: b.cap || '' } : { t: 'testo', v: b.v }; });
+        }
+        return y;
+      });
+      return salvaPercorso(bid, sezioni, nuove);
     });
   }
 
