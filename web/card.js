@@ -335,19 +335,20 @@
     small('DATA DI NASCITA', fmtData(d.nascita), 114);
     small('DATA DI RILASCIO', fmtData(d.rilascio), 150);
 
-    var by = 189, bh = 33, sw = 106, tw2 = rw - sw - 7;
-    ctx.fillStyle = t.accent; ctx.fillRect(rx, by, sw, bh);
+    // tier: riquadro grande in evidenza · gruppo sanguigno: riquadro piccolo accanto
+    var by = 189, bh = 33, tw2 = 106, sw = rw - tw2 - 7;
+    ctx.fillStyle = t.accent; ctx.fillRect(rx, by, tw2, bh);
     ctx.fillStyle = t.accentInk; font(ctx, '700', 7, F_COND);
-    spaced(ctx, 'GRUPPO SANG.', rx + 6, by + 10, 1, 'left', sw - 12);
-    fitFont(ctx, d.sangue || '—', '700', 16, 9, F_MONO, sw - 12);
-    ctx.fillText(d.sangue || '—', rx + 6, by + 28);
-    var tbx = rx + sw + 7;
-    ctx.fillStyle = t.panel; ctx.fillRect(tbx, by, tw2, bh);
-    ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(tbx + 0.5, by + 0.5, tw2 - 1, bh - 1);
+    spaced(ctx, 'TIER', rx + 6, by + 10, 1.2, 'left', tw2 - 12);
+    fitFont(ctx, d.tier ? 'T' + d.tier : '—', '400', 23, 10, F_STENCIL, tw2 - 12);
+    ctx.fillText(d.tier ? 'T' + d.tier : '—', rx + 6, by + 30);
+    var sbx = rx + tw2 + 7;
+    ctx.fillStyle = t.panel; ctx.fillRect(sbx, by, sw, bh);
+    ctx.strokeStyle = t.line; ctx.lineWidth = 1; ctx.strokeRect(sbx + 0.5, by + 0.5, sw - 1, bh - 1);
     ctx.fillStyle = t.muted; font(ctx, '600', 7, F_COND);
-    spaced(ctx, 'TIER', tbx + tw2 / 2, by + 10, 1.2, 'center');
-    ctx.fillStyle = t.accent; font(ctx, '400', 17, F_STENCIL);
-    ctx.textAlign = 'center'; ctx.fillText(d.tier ? 'T' + d.tier : '—', tbx + tw2 / 2, by + 29); ctx.textAlign = 'left';
+    spaced(ctx, 'GR. SANG.', sbx + sw / 2, by + 10, 1, 'center', sw - 8);
+    ctx.fillStyle = t.accent; fitFont(ctx, d.sangue || '—', '700', 13, 7, F_MONO, sw - 8);
+    ctx.textAlign = 'center'; ctx.fillText(d.sangue || '—', sbx + sw / 2, by + 28); ctx.textAlign = 'left';
 
     // dati anagrafici
     var mx = 16, mw = W - 32;
