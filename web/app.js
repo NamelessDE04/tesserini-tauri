@@ -5,7 +5,7 @@
   var KEY_DRAFT = 'tauri.bozza.v1';
   var KEY_ARCH = 'tauri.archivio.v1';
   var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
-  var VERSIONE = '1.34'; // aggiornare insieme a CACHE in sw.js
+  var VERSIONE = '1.35'; // aggiornare insieme a CACHE in sw.js
 
   var FIELDS = ['cognome', 'nome', 'callsign', 'nascita', 'unita', 'numero', 'rilascio', 'sangue', 'tier', 'tema'];
   var state = defaults();
@@ -66,6 +66,7 @@
     var cv = $('preview');
     var w = cv.clientWidth || 360;
     var scale = Math.min(4, Math.max(1, (w * (window.devicePixelRatio || 1)) / TauriCard.W));
+    if (vista === 'scheda') { disegnaScheda(); return; }
     TauriCard.draw(cv, cardData(), { logo: logo }, scale);
   }
   function cardData() {
@@ -418,7 +419,7 @@
       var fr = document.createElement('span'); fr.className = 'riga-freccia'; fr.setAttribute('aria-hidden', 'true');
       fr.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>';
       bt.appendChild(foto); bt.appendChild(txt); bt.appendChild(fr);
-      bt.onclick = function () { apriEditor(rec); };
+      bt.onclick = function () { apriScheda(rec); };
       g.appendChild(bt);
     });
   }
@@ -427,18 +428,27 @@
   var homeTab = 'tessere';
   // funzioni in prova: visibili solo all'account amministratore finché non vengono aperte a tutti
   function anteprimaSoloAdmin() { return !window.TauriSync.enabled || window.TauriSync.isAdmin(); }
-  function mostraVista(editor) {
+  // viste: 'archivio' (o addestramento), 'scheda' = tessera a tutto schermo, 'editor' = modifica
+  var vista = 'archivio';
+  function mostraVista(v) {
+    if (v === true) v = 'editor'; else if (v === false) v = 'archivio';
+    vista = v;
+    var editor = v === 'editor', home = v === 'archivio';
     if (!anteprimaSoloAdmin()) homeTab = 'tessere';
-    $('homeTabs').hidden = editor || !anteprimaSoloAdmin();
-    $('viewTrain').hidden = editor || homeTab !== 'addestramento';
-    $('viewArchivio').hidden = editor || homeTab !== 'tessere';
+    $('homeTabs').hidden = !home || !anteprimaSoloAdmin();
+    $('viewTrain').hidden = !home || homeTab !== 'addestramento';
+    $('viewArchivio').hidden = !home || homeTab !== 'tessere';
     $('viewEditor').hidden = !editor;
     $('barraEditor').hidden = !editor;
     $('btnTornaArchivio').hidden = !editor;
+    $('viewScheda').hidden = v !== 'scheda';
     document.body.classList.toggle('in-editor', editor);
+    document.body.classList.toggle('in-scheda', v === 'scheda');
     window.scrollTo(0, 0);
   }
-  function apriEditor(rec) {
+  // chi può modificare una tessera: oggi ogni account approvato (le regole del database lo permettono)
+  function puoModificare() { return !window.TauriSync.enabled || window.TauriSync.approved(); }
+  function caricaStato(rec) {
     if (rec) {
       var r = JSON.parse(JSON.stringify(rec)); delete r.thumb; delete r.savedAt; delete r.by;
       state = Object.assign(defaults(), r);
@@ -447,19 +457,68 @@
     }
     photoImg = null; inAttesa = false;
     fillForm();
-    mostraVista(true);
+  }
+  function storia(livello) {
+    // livello 1 = tessera aperta, 2 = in modifica: il tasto "indietro" del telefono torna al livello prima
+    try {
+      var cur = (history.state && history.state.tt) || 0;
+      for (var l = cur + 1; l <= livello; l++) history.pushState({ tt: l }, '');
+    } catch (e) {}
+  }
+  function apriScheda(rec) {
+    caricaStato(rec);
+    mostraVista('scheda');
+    $('btnSchedaModifica').hidden = !puoModificare();
+    disegnaScheda();
+    storia(1);
+  }
+  function apriEditor(rec) {
+    if (rec !== undefined) caricaStato(rec);
+    mostraVista('editor');
     render(); mostraStato();
     $('btnElimina').hidden = !state.id;
-    try { history.pushState({ editor: true }, ''); } catch (e) {}
+    storia(2);
+  }
+  // tessera a tutto schermo: la più grande possibile nello spazio libero, senza deformarla
+  function disegnaScheda() {
+    if (vista !== 'scheda') return;
+    var area = $('schedaArea'), cv = $('schedaCanvas');
+    var aw = area.clientWidth - 16, ah = area.clientHeight - 16;
+    var w = Math.max(100, Math.min(aw, ah * TauriCard.W / TauriCard.H));
+    cv.style.width = Math.floor(w) + 'px'; cv.style.height = Math.floor(w * TauriCard.H / TauriCard.W) + 'px';
+    var scale = Math.min(5, Math.max(1, (w * (window.devicePixelRatio || 1)) / TauriCard.W));
+    TauriCard.draw(cv, cardData(), { logo: logo }, scale);
+  }
+  window.addEventListener('resize', function () { disegnaScheda(); });
+  // dalla modifica si torna alla tessera a tutto schermo (o all'archivio se è vuota)
+  function fineModifica(daHistory) {
+    var p = inAttesa ? salvaOra() : Promise.resolve();
+    if (haContenuto()) {
+      mostraVista('scheda');
+      $('btnSchedaModifica').hidden = !puoModificare();
+      disegnaScheda();
+      if (!daHistory) { try { if (history.state && history.state.tt === 2) history.back(); } catch (e) {} }
+    } else {
+      tornaArchivio(daHistory);
+    }
+    return p;
   }
   function tornaArchivio(daHistory) {
     var p = inAttesa ? salvaOra() : Promise.resolve();
-    mostraVista(false);
+    var livello = (history.state && history.state.tt) || 0;
+    mostraVista('archivio');
     disegnaArchivio();
-    if (!daHistory) { try { if (history.state && history.state.editor) history.back(); } catch (e) {} }
+    if (!daHistory && livello) { try { history.go(-livello); } catch (e) {} }
     return p;
   }
-  window.addEventListener('popstate', function () { if (!$('viewEditor').hidden) tornaArchivio(true); });
+  window.addEventListener('popstate', function () {
+    var livello = (history.state && history.state.tt) || 0;
+    if (vista === 'editor' && livello === 1) fineModifica(true);
+    else if (vista !== 'archivio' && livello === 0) tornaArchivio(true);
+  });
+  $('btnSchedaIndietro').onclick = function () { tornaArchivio(false); };
+  $('btnSchedaModifica').onclick = function () { apriEditor(); };
+  $('btnSchedaStampa').onclick = function () { $('dlgEsporta').showModal(); };
   $('btnNuova').onclick = function () { apriEditor(null); };
   function scegliTab(t) {
     homeTab = t;
@@ -470,8 +529,8 @@
   }
   $('tabTessere').onclick = function () { scegliTab('tessere'); };
   $('tabAddestramento').onclick = function () { scegliTab('addestramento'); };
-  window.addEventListener('tauri-role', function () { if ($('viewEditor').hidden) scegliTab(homeTab); });
-  $('btnTornaArchivio').onclick = function () { tornaArchivio(false); };
+  window.addEventListener('tauri-role', function () { if (vista === 'archivio') scegliTab(homeTab); else if (vista === 'scheda') $('btnSchedaModifica').hidden = !puoModificare(); });
+  $('btnTornaArchivio').onclick = function () { fineModifica(false); };
   $('btnElimina').onclick = function () {
     if (!state.id) return;
     var nome = nomeTessera(state);
@@ -499,7 +558,7 @@
       .forEach(function (f) { document.fonts.load(f).then(ridisegna, function () {}); });
     document.fonts.ready.then(ridisegna);
   }
-  function ridisegna() { if ($('viewEditor').hidden) disegnaArchivio(); else render(); }
+  function ridisegna() { if (vista === 'editor') render(); else if (vista === 'scheda') disegnaScheda(); else disegnaArchivio(); }
   window.addEventListener('resize', ridisegna);
   mostraStato();
 

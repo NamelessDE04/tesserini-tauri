@@ -28,7 +28,7 @@
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M17 8v6M14 11h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
     <span class="badge" id="richiesteBadge" hidden>0</span>
   </button>
-  <button type="button" class="top-back" id="btnTornaArchivio" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Archivio</span></button>
+  <button type="button" class="top-back" id="btnTornaArchivio" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg><span>Fine</span></button>
 </header>
 
 <nav class="home-tabs" id="homeTabs" aria-label="Sezioni">
@@ -127,6 +127,16 @@
 
   <button type="button" class="link-btn elimina-btn" id="btnElimina" hidden>Elimina questa tessera</button>
 </main>
+
+<section class="scheda-view" id="viewScheda" hidden aria-label="Tessera">
+  <div class="scheda-bar">
+    <button type="button" class="scheda-btn" id="btnSchedaIndietro"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><span>Archivio</span></button>
+    <span class="scheda-sp"></span>
+    <button type="button" class="scheda-btn ico" id="btnSchedaStampa" aria-label="Stampa e invia" title="Stampa e invia"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 9V3h10v6 M7 17H4v-8h16v8h-3 M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+    <button type="button" class="scheda-btn ico" id="btnSchedaModifica" aria-label="Modifica tessera" title="Modifica tessera"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L3.6 17.1a1.8 1.8 0 0 0 2.5 2.5l5.7-5.7a4 4 0 0 0 5.1-5.4l-2.6 2.6-2.3-.6-.6-2.3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="scheda-area" id="schedaArea"><canvas id="schedaCanvas" aria-label="Tessera a tutto schermo"></canvas></div>
+</section>
 
 <nav class="actions" id="barraEditor" aria-label="Azioni" hidden>
   <button type="button" class="tabbtn primary" id="btnEsporta"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M7 9V3h10v6 M7 17H4v-8h16v8h-3 M7 14h10v7H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span>Stampa e invia</span></button>
