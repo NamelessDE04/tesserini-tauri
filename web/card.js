@@ -245,15 +245,52 @@
     ctx.restore();
   }
 
-  // distintivo del brevetto: tondo pieno col colore del corso se conseguito, tratteggiato se no
-  function distintivo(ctx, b, cx, cy, r, data, t) {
+  // livelli dei brevetti
+  var LIVELLI = {
+    bronzo: { nome: 'Bronzo', stelle: 1, chiaro: '#e3a46b', medio: '#a8652f', scuro: '#5e3413' },
+    argento: { nome: 'Argento', stelle: 2, chiaro: '#f4f6f8', medio: '#aab2ba', scuro: '#5d656d' },
+    oro: { nome: 'Oro', stelle: 3, chiaro: '#ffe9a0', medio: '#d4a82e', scuro: '#7a5a0c' }
+  };
+  // un brevetto salvato può essere 'AAAA-MM-GG' (vecchio formato = bronzo) oppure { liv, data }
+  function leggiBrevetto(v) {
+    if (!v) return null;
+    if (typeof v === 'string') return { liv: 'bronzo', data: v };
+    return { liv: LIVELLI[v.liv] ? v.liv : 'bronzo', data: v.data || '' };
+  }
+  function stella(ctx, x, y, r) {
+    ctx.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  // distintivo del brevetto: tondo pieno col colore del corso se conseguito, tratteggiato se no;
+  // il bordo metallico e le stelle indicano il livello (bronzo 1, argento 2, oro 3)
+  function distintivo(ctx, b, cx, cy, r, data, t, liv) {
     var ink = b.ink || INK_RISERVA[hash(b.nome) % INK_RISERVA.length];
     ctx.save();
     ctx.translate(cx, cy);
     if (data) {
-      ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = t.accent; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, r - 2.2, 0, Math.PI * 2); ctx.stroke();
-      icona(ctx, b.icona, r * 1.15, '#f4efe2', ink);
+      var L = LIVELLI[liv];
+      if (L) {
+        // anello metallico
+        var g = ctx.createLinearGradient(-r, -r, r, r);
+        g.addColorStop(0, L.chiaro); g.addColorStop(0.5, L.medio); g.addColorStop(1, L.scuro);
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r + 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, 0, r - 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = L.scuro; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(0, 0, r - 2.4, 0, Math.PI * 2); ctx.stroke();
+        icona(ctx, b.icona, r * 1.0, '#f4efe2', ink);
+        // stelle sul bordo in basso
+        ctx.fillStyle = L.chiaro; ctx.strokeStyle = L.scuro; ctx.lineWidth = 0.5;
+        var n = L.stelle, passo = r * 0.42;
+        for (var k = 0; k < n; k++) stella(ctx, (k - (n - 1) / 2) * passo, r * 0.98, r * 0.24);
+      } else {
+        ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = t.accent; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(0, 0, r - 2.2, 0, Math.PI * 2); ctx.stroke();
+        icona(ctx, b.icona, r * 1.15, '#f4efe2', ink);
+      }
     } else {
       ctx.strokeStyle = t.line; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]);
       ctx.beginPath(); ctx.arc(0, 0, r - 1, 0, Math.PI * 2); ctx.stroke();
@@ -285,7 +322,8 @@
 
   /**
    * Tesserino (un solo lato). d: { cognome, nome, callsign, nascita, unita, numero, rilascio (AAAA-MM-GG),
-   *   sangue, tier (1-10), tema, photo, photoZoom, photoX, photoY, brevetti: { <id>: 'AAAA-MM-GG' } }
+   *   sangue, tier (1-10), tema, photo, photoZoom, photoX, photoY,
+   *   brevetti: { <id>: { liv: 'bronzo'|'argento'|'oro', data: 'AAAA-MM-GG' } } (o la sola data = bronzo) }
    * catalogo: elenco brevetti (fino a 10: 2 righe da 5).
    */
   function draw(canvas, d, assets, scale, catalogo) {
@@ -388,11 +426,12 @@
       var inRow = Math.min(cols, cat.length - rr * cols);
       var cx = mx + (cols - inRow) * cw / 2 + c * cw + cw / 2;
       var cy = startY + rr * rh + 17;
-      distintivo(ctx, b, cx, cy, 15, ok[b.id], t);
-      ctx.fillStyle = ok[b.id] ? t.ink : t.muted; font(ctx, '700', 7, F_COND);
+      var bv = leggiBrevetto(ok[b.id]);
+      distintivo(ctx, b, cx, cy, 15, bv && (bv.data || 'x'), t, bv && bv.liv);
+      ctx.fillStyle = bv ? t.ink : t.muted; font(ctx, '700', 7, F_COND);
       spaced(ctx, b.nome.toUpperCase(), cx, cy + 26, 0.4, 'center', cw - 6);
-      if (ok[b.id]) {
-        var dd = fmtData(ok[b.id]);
+      if (bv) {
+        var dd = fmtData(bv.data);
         ctx.fillStyle = t.accent; font(ctx, '700', 6.5, F_MONO);
         spaced(ctx, dd, cx, cy + 35, 0, 'center', cw - 6);
       }
@@ -400,14 +439,14 @@
   }
 
   // distintivo singolo (per l'elenco degli addestramenti)
-  function badge(canvas, b, conseguito, px) {
+  function badge(canvas, b, conseguito, px, liv) {
     px = px || 48;
     var dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
     canvas.width = Math.round(px * dpr); canvas.height = Math.round(px * dpr);
     var ctx = canvas.getContext('2d');
     ctx.setTransform(canvas.width / 40, 0, 0, canvas.height / 40, 0, 0);
-    distintivo(ctx, b, 20, 20, 18.5, conseguito ? 'x' : '', THEMES.notte);
+    distintivo(ctx, b, 20, 20, liv ? 17 : 18.5, conseguito ? 'x' : '', THEMES.notte, liv);
   }
 
-  root.TauriCard = { draw: draw, badge: badge, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI };
+  root.TauriCard = { draw: draw, badge: badge, W: W, H: H, THEMES: THEMES, BREVETTI: BREVETTI, LIVELLI: LIVELLI, leggiBrevetto: leggiBrevetto };
 })(window);

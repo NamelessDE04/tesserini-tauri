@@ -305,3 +305,12 @@ input[type=number] { width: 100%; min-height: 46px; padding: 10px 12px; backgrou
 .tr-save { position: sticky; bottom: 8px; z-index: 3; padding: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
 .tr-val-r { display: flex; flex-direction: column; gap: 3px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
 .tr-val-r small { color: var(--muted); font-size: 14px; } .tr-val-r small.ok { color: var(--accent); } .tr-val-r small.ko { color: var(--danger); }
+
+/* livelli dei brevetti nell'editor */
+.brev.brev-grid { display: grid; grid-template-columns: minmax(0, 1fr) 170px; align-items: center; gap: 6px 10px; padding: 6px 0; }
+.brev-nome { font-size: 17px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.brev-grid select { min-height: 46px; width: 100%; font: 600 16px var(--cond); }
+.brev-grid input[type=date] { grid-column: 2; width: 100%; }
+.brev-liv.bronzo { color: #e3a46b; border-color: #a8652f; }
+.brev-liv.argento { color: #e6eaee; border-color: #aab2ba; }
+.brev-liv.oro { color: #ffd966; border-color: #d4a82e; }

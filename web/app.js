@@ -5,7 +5,7 @@
   var KEY_DRAFT = 'tauri.bozza.v1';
   var KEY_ARCH = 'tauri.archivio.v1';
   var EXPORT_SCALE = 1039 / TauriCard.W; // 88 mm a 300 dpi
-  var VERSIONE = '1.33'; // aggiornare insieme a CACHE in sw.js
+  var VERSIONE = '1.34'; // aggiornare insieme a CACHE in sw.js
 
   var FIELDS = ['cognome', 'nome', 'callsign', 'nascita', 'unita', 'numero', 'rilascio', 'sangue', 'tier', 'tema'];
   var state = defaults();
@@ -110,40 +110,50 @@
   // solo l'amministratore può legare le date dei brevetti alla data di rilascio
   function puoSincronizzare() { return !window.TauriSync.enabled || window.TauriSync.isAdmin(); }
   function syncAttivo() { return !!state.brevSync && puoSincronizzare(); }
+  // ogni brevetto assegnato è { liv: 'bronzo'|'argento'|'oro', data: 'AAAA-MM-GG' } (i vecchi, solo data, valgono bronzo)
+  function brev(id) { return TauriCard.leggiBrevetto(state.brevetti[id]); }
   function allineaDate() {
     if (!syncAttivo() || !state.rilascio) return;
-    Object.keys(state.brevetti || {}).forEach(function (k) { state.brevetti[k] = state.rilascio; });
+    Object.keys(state.brevetti || {}).forEach(function (k) { var v = brev(k); if (v) state.brevetti[k] = { liv: v.liv, data: state.rilascio }; });
   }
   function renderBrevetti() {
     var box = $('brevettiList'); box.innerHTML = '';
     var edit = puoTimbrare();
     if (!state.brevetti || typeof state.brevetti !== 'object') state.brevetti = {};
     $('brevettiHint').textContent = edit
-      ? 'Spunta il brevetto quando l\'esame è superato e indica la data: compare sul tesserino.'
+      ? 'Scegli il livello raggiunto (bronzo, argento, oro) e la data dell\'esame: compare sul tesserino.'
       : 'I brevetti li assegnano solo l\'amministratore e gli istruttori abilitati, dopo l\'esame.';
     var syncBox = $('brevSyncBox');
     syncBox.hidden = !puoSincronizzare();
     $('brevSync').checked = !!state.brevSync;
     allineaDate();
     TauriCard.BREVETTI.forEach(function (b) {
-      var row = document.createElement('div'); row.className = 'brev';
-      var lab = document.createElement('label'); lab.className = 'check';
-      var cb = document.createElement('input'); cb.type = 'checkbox';
+      var v = brev(b.id);
+      var row = document.createElement('div'); row.className = 'brev brev-grid';
+      var nome = document.createElement('span'); nome.className = 'brev-nome'; nome.textContent = b.nome;
+      var sel = document.createElement('select');
+      sel.className = 'brev-liv' + (v ? ' ' + v.liv : '');
+      sel.setAttribute('aria-label', 'Livello ' + b.nome);
+      [['', '— Nessuno'], ['bronzo', '★ Bronzo'], ['argento', '★★ Argento'], ['oro', '★★★ Oro']].forEach(function (o) {
+        var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op);
+      });
+      sel.value = v ? v.liv : '';
       var dt = document.createElement('input'); dt.type = 'date';
       dt.setAttribute('aria-label', 'Data esame ' + b.nome);
-      cb.checked = !!state.brevetti[b.id];
-      dt.value = state.brevetti[b.id] || '';
-      cb.disabled = !edit;
+      dt.value = v ? v.data : '';
+      sel.disabled = !edit;
       dt.disabled = !edit || syncAttivo();
-      dt.hidden = !cb.checked;
-      cb.onchange = function () {
-        if (cb.checked) { state.brevetti[b.id] = syncAttivo() && state.rilascio ? state.rilascio : (dt.value || oggi()); dt.value = state.brevetti[b.id]; }
-        else delete state.brevetti[b.id];
-        dt.hidden = !cb.checked; update();
+      dt.hidden = !v;
+      sel.onchange = function () {
+        if (sel.value) {
+          var data = syncAttivo() && state.rilascio ? state.rilascio : (dt.value || oggi());
+          state.brevetti[b.id] = { liv: sel.value, data: data }; dt.value = data;
+        } else delete state.brevetti[b.id];
+        sel.className = 'brev-liv' + (sel.value ? ' ' + sel.value : '');
+        dt.hidden = !sel.value; update();
       };
-      dt.oninput = function () { if (cb.checked && dt.value) { state.brevetti[b.id] = dt.value; update(); } };
-      lab.appendChild(cb); lab.appendChild(document.createTextNode(' ' + b.nome));
-      row.appendChild(lab); row.appendChild(dt); box.appendChild(row);
+      dt.oninput = function () { var w = brev(b.id); if (w && dt.value) { state.brevetti[b.id] = { liv: w.liv, data: dt.value }; update(); } };
+      row.appendChild(nome); row.appendChild(sel); row.appendChild(dt); box.appendChild(row);
     });
   }
   window.addEventListener('tauri-role', function () { renderBrevetti(); });
