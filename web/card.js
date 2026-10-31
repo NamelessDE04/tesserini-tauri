@@ -247,9 +247,9 @@
 
   // livelli dei brevetti
   var LIVELLI = {
-    bronzo: { nome: 'Bronzo', stelle: 1, chiaro: '#e3a46b', medio: '#a8652f', scuro: '#5e3413' },
-    argento: { nome: 'Argento', stelle: 2, chiaro: '#f4f6f8', medio: '#aab2ba', scuro: '#5d656d' },
-    oro: { nome: 'Oro', stelle: 3, chiaro: '#ffe9a0', medio: '#d4a82e', scuro: '#7a5a0c' }
+    bronzo: { nome: 'Bronzo', stelle: 1, chiaro: '#e3a46b', medio: '#a8652f', scuro: '#5e3413', inciso: '#3d1f08' },
+    argento: { nome: 'Argento', stelle: 2, chiaro: '#f4f6f8', medio: '#aab2ba', scuro: '#5d656d', inciso: '#2c3238' },
+    oro: { nome: 'Oro', stelle: 3, chiaro: '#ffe9a0', medio: '#d4a82e', scuro: '#7a5a0c', inciso: '#4a3502' }
   };
   // un brevetto salvato può essere 'AAAA-MM-GG' (vecchio formato = bronzo) oppure { liv, data }
   function leggiBrevetto(v) {
@@ -279,9 +279,12 @@
         var g = ctx.createLinearGradient(-r, -r, r, r);
         g.addColorStop(0, L.chiaro); g.addColorStop(0.5, L.medio); g.addColorStop(1, L.scuro);
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r + 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, 0, r - 2.4, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = L.scuro; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.arc(0, 0, r - 2.4, 0, Math.PI * 2); ctx.stroke();
-        icona(ctx, b.icona, r * 1.0, '#f4efe2', ink);
+        // centro della moneta con la luce rovesciata, così il bordo sembra in rilievo
+        var g2 = ctx.createLinearGradient(r, r, -r, -r);
+        g2.addColorStop(0, L.chiaro); g2.addColorStop(0.55, L.medio); g2.addColorStop(1, L.scuro);
+        ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0, 0, r - 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = L.scuro; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.arc(0, 0, r - 2.4, 0, Math.PI * 2); ctx.stroke();
+        icona(ctx, b.icona, r * 1.0, L.inciso, L.medio);
         // stelle sul bordo in basso
         ctx.fillStyle = L.chiaro; ctx.strokeStyle = L.scuro; ctx.lineWidth = 0.5;
         var n = L.stelle, passo = r * 0.42;
